@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Find Service Workers — LocalFix</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<!-- Leaflet Map Styles -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="../css/style.css" rel="stylesheet">
+</head>
+<body style="background: var(--lf-muted);">
+
+<!-- ================= NAVBAR ================= -->
+<nav class="navbar navbar-expand-lg lf-navbar scrolled">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-3">
+      <button type="button" class="btn-lf-back" onclick="lfGoBack('../index.html')">
+        <i class="bi bi-arrow-left"></i> <span>Back</span>
+      </button>
+      <a href="../index.html" id="navLogo"></a>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="customer-dashboard.html" class="btn btn-lf-outline btn-sm"><i class="bi bi-person me-1"></i>My Account</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <!-- Search & View Toggle Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+      <h3 id="resultsTitle" class="mb-1">Verified Service Workers Near You</h3>
+      <p class="text-muted small mb-0" id="resultsSubtitle">Showing verified electricians, plumbers, and technicians available for instant home service.</p>
+    </div>
+
+    <!-- View Switcher (Grid vs Interactive Map) -->
+    <div class="btn-group lf-view-switch shadow-sm bg-white p-1 rounded-3 border">
+      <button type="button" class="btn btn-lf-primary btn-sm active" id="btnListView">
+        <i class="bi bi-grid-fill me-1"></i> Grid View
+      </button>
+      <button type="button" class="btn btn-light btn-sm" id="btnMapView">
+        <i class="bi bi-map-fill text-primary me-1"></i> Map View
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Filters Panel -->
+    <div class="col-lg-3">
+      <div class="lf-card p-3 sticky-top" style="top: 80px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-funnel me-1 text-primary"></i> Filter Workers</h6>
+          <a href="worker-search.html" class="small text-muted text-decoration-none">Reset</a>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Search Keywords</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+            <input type="text" id="searchQuery" class="form-control border-start-0" placeholder="Name, skill, area...">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Service Category</label>
+          <select id="filterCategory" class="form-select form-select-sm"></select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Minimum Star Rating</label>
+          <select id="filterRating" class="form-select form-select-sm">
+            <option value="0">Any Star Rating</option>
+            <option value="4.5">4.5★ &amp; Above</option>
+            <option value="4.0">4.0★ &amp; Above</option>
+            <option value="3.0">3.0★ &amp; Above</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label small fw-semibold mb-0">Max Visit Price</label>
+            <span class="small fw-bold text-primary">₹<span id="filterPriceLabel">500</span></span>
+          </div>
+          <input type="range" class="form-range" id="filterPrice" min="100" max="600" step="50" value="500">
+        </div>
+
+        <div class="mb-1">
+          <label class="form-label small fw-semibold">Sort By</label>
+          <select id="filterSort" class="form-select form-select-sm">
+            <option value="recommended">Recommended (Top Rated)</option>
+            <option value="rating_desc">Highest Star Rating</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="experience_desc">Most Experienced</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Workers Grid & Map Container -->
+    <div class="col-lg-9">
+      <!-- Grid View Section -->
+      <div id="sectionGridView">
+        <div class="row g-3" id="workerResults"></div>
+        <div id="resultsEmpty" class="d-none"></div>
+      </div>
+
+      <!-- Interactive Map View Section -->
+      <div id="sectionMapView" class="d-none">
+        <div class="lf-map-wrapper">
+          <div id="searchMap" class="lf-map-container"></div>
+        </div>
+        <div class="mt-2 text-muted small d-flex align-items-center gap-2">
+          <i class="bi bi-info-circle text-primary"></i>
+          <span>Click on any price marker pin on the map to view the worker card and book immediately.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="lf-footer mt-5">
+  <div class="container text-center small text-muted">
+    © 2026 LocalFix. All rights reserved. Trusted local service network.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Leaflet Map JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/sampleData.js"></script>
+<script src="../js/maps.js"></script>
+<script src="../js/worker-search.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const navLogo = document.getElementById('navLogo');
+    if (navLogo) navLogo.innerHTML = lfBrandLogo(false);
+  });
+</script>
+</body>
+</html>

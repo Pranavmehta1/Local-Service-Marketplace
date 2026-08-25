@@ -1,0 +1,204 @@
+/* =========================================================
+   LocalFix — Dashboard Layout (Customer / Worker / Admin)
+   Clean multi-tab view panels, responsive sidebar, stat cards
+   ========================================================= */
+.lf-dash {
+  display: flex;
+  min-height: 100vh;
+  background: var(--lf-muted);
+}
+
+/* Sidebar */
+.lf-sidebar {
+  width: 260px;
+  background: var(--lf-ink);
+  color: #CBD5E1;
+  flex-shrink: 0;
+  padding: 1.25rem 1rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  transition: transform 0.25s ease;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+}
+
+.lf-sidebar-brand {
+  padding: 0.5rem 0.6rem 1.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 1rem;
+}
+
+.lf-sidebar .nav-link {
+  color: #94A3B8;
+  border-radius: var(--lf-radius-md);
+  padding: 0.65rem 0.9rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.lf-sidebar .nav-link i {
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+}
+.lf-sidebar .nav-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #FFFFFF;
+}
+.lf-sidebar .nav-link.active {
+  background: linear-gradient(135deg, var(--lf-primary), var(--lf-primary-hover));
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+.lf-sidebar .nav-link.lf-logout {
+  color: #F87171;
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.9rem;
+}
+.lf-sidebar .nav-link.lf-logout:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+}
+
+.lf-sidebar-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(11, 17, 32, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1040;
+}
+
+/* Main Content Area */
+.lf-main {
+  flex: 1;
+  min-width: 0;
+  padding: 1.8rem 2.2rem 3.5rem;
+}
+
+.lf-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.8rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--lf-border);
+}
+.lf-topbar .lf-menu-toggle { display: none; }
+
+/* Stat Cards */
+.lf-stat-card {
+  background: #fff;
+  border-radius: var(--lf-radius-lg);
+  border: 1px solid var(--lf-border);
+  padding: 1.35rem 1.4rem;
+  box-shadow: var(--lf-shadow-sm);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  height: 100%;
+}
+.lf-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--lf-shadow-md);
+}
+.lf-stat-card .lf-stat-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--lf-primary-light);
+  color: var(--lf-primary);
+  font-size: 1.25rem;
+  margin-bottom: 0.85rem;
+}
+.lf-stat-card .lf-stat-value {
+  font-family: var(--lf-font-mono);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--lf-ink);
+  line-height: 1.1;
+  margin-bottom: 0.2rem;
+}
+.lf-stat-card .lf-stat-title {
+  color: var(--lf-text-soft);
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+/* Panels & Tables */
+.lf-panel {
+  background: #fff;
+  border-radius: var(--lf-radius-lg);
+  border: 1px solid var(--lf-border);
+  padding: 1.6rem;
+  box-shadow: var(--lf-shadow-sm);
+  margin-bottom: 1.5rem;
+}
+.lf-panel h5 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
+}
+
+.lf-table thead th {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--lf-text-soft);
+  font-weight: 700;
+  background: var(--lf-muted);
+  border-bottom: 1px solid var(--lf-border);
+  padding: 0.85rem 1rem;
+}
+.lf-table td {
+  vertical-align: middle;
+  font-size: 0.92rem;
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid var(--lf-border);
+}
+.lf-table tbody tr:hover {
+  background: #F8FAFC;
+}
+.lf-table-responsive { overflow-x: auto; }
+
+/* Dashboard Tab Views */
+.lf-tab-view {
+  display: none;
+  animation: lf-fade-in 0.2s ease;
+}
+.lf-tab-view.active {
+  display: block;
+}
+@keyframes lf-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* User Avatar In Dashboard */
+.lf-user-badge-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--lf-primary-light), #BAE6FD);
+  color: var(--lf-primary-dark);
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+  .lf-sidebar {
+    position: fixed;
+    left: 0; top: 0;
+    transform: translateX(-100%);
+  }
+  .lf-sidebar.open { transform: translateX(0); }
+  .lf-sidebar-backdrop.open { display: block; }
+  .lf-topbar .lf-menu-toggle { display: inline-flex; }
+  .lf-main { padding: 1.2rem 1rem 3rem; }
+}

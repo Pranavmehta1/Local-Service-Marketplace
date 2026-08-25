@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LocalFix - Trusted Home Services</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<link href="css/landing.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="lf-navbar-new navbar navbar-expand-lg" id="mainNav">
+  <div class="container">
+    <a href="index.html" class="navbar-brand lf-brand-mark">Local<span>Fix</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <i class="bi bi-list fs-2 text-white"></i>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav mx-auto gap-1">
+        <li class="nav-item"><a class="nav-link" href="#services">Services</a></li>
+        <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
+        <li class="nav-item"><a class="nav-link" href="#testimonials">Reviews</a></li>
+        <li class="nav-item"><a class="nav-link" href="#footer">Contact</a></li>
+      </ul>
+      <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+        <button id="themeToggleBtn" class="btn btn-sm text-white fs-5 border-0 me-1" title="Toggle Dark/Light Mode" style="line-height: 1;">
+          <i class="bi bi-moon-stars"></i>
+        </button>
+        <a href="pages/auth.html" class="lf-nav-btn-ghost">Sign In</a>
+        <a href="pages/auth.html?mode=register" class="lf-nav-btn-primary">Get Started</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<section class="lf-hero-new">
+  <div class="container position-relative" style="z-index:1;">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <div class="lf-eyebrow-hero reveal">
+          <span class="lf-pulse-dot"></span>
+          500+ Verified Workers in Ludhiana
+        </div>
+        <h1 class="lf-hero-h1 reveal delay-1">
+          Trusted home repairs,<br>
+          <span class="accent">right at your door.</span>
+        </h1>
+        <p class="lf-hero-sub reveal delay-2">
+          Book background-checked electricians, plumbers, AC technicians, and cleaners with upfront pricing and real star ratings.
+        </p>
+        <div class="lf-trust-bar reveal delay-3">
+          <div class="lf-trust-item"><i class="bi bi-patch-check-fill"></i> ID Verified</div>
+          <div class="lf-trust-item"><i class="bi bi-star-fill"></i> Real Reviews</div>
+          <div class="lf-trust-item"><i class="bi bi-shield-fill-check"></i> Safe &amp; Insured</div>
+          <div class="lf-trust-item"><i class="bi bi-clock-fill"></i> On-Time</div>
+        </div>
+        <div class="lf-hero-search-bar reveal delay-4">
+          <i class="bi bi-search text-white opacity-50"></i>
+          <select id="heroCategorySelect">
+            <option value="">All Services</option>
+            <option value="electrician">Electrician</option>
+            <option value="plumber">Plumber</option>
+            <option value="ac_repair">AC Repair</option>
+            <option value="ro_repair">RO Repair</option>
+            <option value="carpenter">Carpenter</option>
+            <option value="cleaning">Home Cleaning</option>
+            <option value="appliance_repair">Appliance Repair</option>
+          </select>
+          <div class="srch-divider"></div>
+          <i class="bi bi-geo-alt text-white opacity-50"></i>
+          <input type="text" id="heroLocInput" placeholder="Model Town, Ludhiana">
+          <button onclick="heroSearch()" class="srch-btn">Find Workers</button>
+        </div>
+        <div class="mt-3 reveal delay-5">
+          <span class="lf-hero-badge"><i class="bi bi-lightning-charge-fill text-warning me-1"></i> Usually responds in under 10 minutes</span>
+        </div>
+      </div>
+      <div class="col-lg-6 reveal-r delay-2">
+        <div class="lf-hero-visual-grid">
+          <a href="pages/worker-search.html?category=electrician" class="lf-service-pill">
+            <div class="lf-service-pill-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+            <div class="lf-service-pill-name">Electrician</div>
+            <div class="lf-service-pill-sub">Wiring &middot; Fans &middot; MCB</div>
+          </a>
+          <a href="pages/worker-search.html?category=plumber" class="lf-service-pill" style="animation-delay:0.5s">
+            <div class="lf-service-pill-icon"><i class="bi bi-droplet-fill"></i></div>
+            <div class="lf-service-pill-name">Plumber</div>
+            <div class="lf-service-pill-sub">Leaks &middot; Taps &middot; Tanks</div>
+          </a>
+          <a href="pages/worker-search.html?category=ac_repair" class="lf-service-pill" style="animation-delay:1s">
+            <div class="lf-service-pill-icon"><i class="bi bi-snow2"></i></div>
+            <div class="lf-service-pill-name">AC Repair</div>
+            <div class="lf-service-pill-sub">Service &middot; Gas &middot; PCB</div>
+          </a>
+          <a href="pages/worker-search.html?category=carpenter" class="lf-service-pill" style="animation-delay:1.5s">
+            <div class="lf-service-pill-icon"><i class="bi bi-hammer"></i></div>
+            <div class="lf-service-pill-name">Carpenter</div>
+            <div class="lf-service-pill-sub">Doors &middot; Furniture</div>
+          </a>
+          <a href="pages/worker-search.html?category=cleaning" class="lf-service-pill" style="animation-delay:2s">
+            <div class="lf-service-pill-icon"><i class="bi bi-stars"></i></div>
+            <div class="lf-service-pill-name">Home Cleaning</div>
+            <div class="lf-service-pill-sub">Deep &middot; Kitchen &middot; Sofa</div>
+          </a>
+          <a href="pages/worker-search.html?category=appliance_repair" class="lf-service-pill" style="animation-delay:2.5s">
+            <div class="lf-service-pill-icon"><i class="bi bi-cpu-fill"></i></div>
+            <div class="lf-service-pill-name">Appliance Repair</div>
+            <div class="lf-service-pill-sub">Fridge &middot; Washer &middot; Geyser</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lf-cat-section" id="services">
+  <div class="container">
+    <div class="text-center mb-5 reveal">
+      <span class="lf-section-eyebrow">What We Offer</span>
+      <h2 class="lf-section-h2 mt-3 mb-2">All home service needs,<br>one platform</h2>
+      <p class="text-muted" style="max-width:500px;margin:0 auto;">Click any category to see verified workers near you.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-6 col-md-4 col-lg-3 reveal delay-1">
+        <a href="pages/worker-search.html?category=electrician" class="lf-cat-card">
+          <div class="lf-cat-img" style="background-image: url('https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=600&q=80'); background-size: cover; background-position: center;"></div>
+          <div class="lf-cat-body">
+            <div class="lf-cat-name">Electrician</div>
+            <div class="lf-cat-desc">Wiring, switchboards, fans, MCB, inverter setup</div>
+            <div class="lf-cat-meta"><span class="lf-cat-avail">Available Now</span><div class="lf-cat-arrow"><i class="bi bi-arrow-right"></i></div></div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3 reveal delay-2">
+        <a href="pages/worker-search.html?category=plumber" class="lf-cat-card">
+          <div class="lf-cat-img" style="background-image: url('https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&w=600&q=80'); background-size: cover; background-position: center;"></div>
+          <div class="lf-cat-body">
+            <div class="lf-cat-name">Plumber</div>
+            <div class="lf-cat-desc">Pipe leaks, tap fittings, sanitary, tank work</div>
+            <div class="lf-cat-meta"><span class="lf-cat-avail">Available Now</span><div class="lf-cat-arrow"><i class="bi bi-arrow-right"></i></div></div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3 reveal delay-3">
+        <a href="pages/worker-search.html?category=ac_repair" class="lf-cat-card">
+          <div class="lf-cat-img" style="background-image: url('https://images.unsplash.com/photo-1621905252507-b354bc25edac?auto=format&fit=crop&w=600&q=80'); background-size: cover; background-position: center;"></div>
+          <div class="lf-cat-body">
+            <div class="lf-cat-name">AC Repair</div>
+            <div class="lf-cat-desc">Jet-pump service, gas refill, PCB &amp; compressor</div>
+            <div class="lf-cat-meta"><span class="lf-cat-avail">Available Now</span><div class="lf-cat-arrow"><i class="bi bi-arrow-right"></i></div></div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3 reveal delay-4">
+        <a href="pages/worker-search.html?category=carpenter" class="lf-cat-card">
+          <div class="lf-cat-img" style="background-image: url('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80'); background-size: cover; background-position: center;"></div>
+          <div class="lf-cat-body">
+            <div class="lf-cat-name">Carpenter</div>
+            <div class="lf-cat-desc">Furniture repair, doors, modular kitchen, polish</div>
+            <div class="lf-cat-meta"><span class="lf-cat-avail">Available Now</span><div class="lf-cat-arrow"><i class="bi bi-arrow-right"></i></div></div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3 reveal delay-1">
+        <a href="pages/worker-search.html?category=cleaning" class="lf-cat-card">
+          <div class="lf-cat-img" style="background-image: url('https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=600&q=80'); background-size: cover; background-position: center;"></div>
+          <div class="lf-cat-body">
+            <div class="lf-cat-name">Home Cleaning</div>
+            <div class="lf-cat-desc">Deep clean, kitchen, bathroom, sofa shampooing</div>
+            <div class="lf-cat-meta"><span class="lf-cat-avail">Available Now</span><div class="lf-cat-arrow"><i class="bi bi-arrow-right"></i></div></div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3 reveal delay-2">
+        <a href="pages/worker-search.html?category=ro_repair" class="lf-cat-card">
+          <div class="lf-cat-img" style="background-image: url('https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'); background-size: cover; background-position: center;"></div>
+          <div class="lf-cat-body">
+            <div class="lf-cat-name">RO / Water Purifier</div>
+            <div class="lf-cat-desc">Filter change, membrane, TDS test, booster pump</div>
+            <div class="lf-cat-meta"><span class="lf-cat-avail">Available Now</span><div class="lf-cat-arrow"><i class="bi bi-arrow-right"></i></div></div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3 reveal delay-3">
+        <a href="pages/worker-search.html?category=appliance_repair" class="lf-cat-card">
+          <div class="lf-cat-img" style="background-image: url('https://images.unsplash.com/photo-1581092921461-eab62e97a780?auto=format&fit=crop&w=600&q=80'); background-size: cover; background-position: center;"></div>
+          <div class="lf-cat-body">
+            <div class="lf-cat-name">Appliance Repair</div>
+            <div class="lf-cat-desc">Washing machine, fridge, microwave, geyser</div>
+            <div class="lf-cat-meta"><span class="lf-cat-avail">Available Now</span><div class="lf-cat-arrow"><i class="bi bi-arrow-right"></i></div></div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3 reveal delay-4">
+        <a href="pages/worker-search.html" class="lf-cat-card lf-cat-dark">
+          <div class="lf-cat-img" style="background-image: url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=80'); background-size: cover; background-position: center;"></div>
+          <div class="lf-cat-body">
+            <div class="lf-cat-name" style="color:#fff;">Browse All Services</div>
+            <div class="lf-cat-desc" style="color:rgba(255,255,255,0.5);">See all workers by category, rating &amp; price</div>
+            <div class="lf-cat-meta"><span class="lf-cat-avail" style="background:#0284C7;border-color:#0284C7;">Explore Now</span><div class="lf-cat-arrow" style="background:rgba(255,255,255,0.1);color:#38BDF8;"><i class="bi bi-arrow-right"></i></div></div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lf-hiw" id="how-it-works">
+  <div class="container">
+    <div class="text-center mb-5 reveal">
+      <span class="lf-section-eyebrow">Simple Process</span>
+      <h2 class="lf-section-h2 mt-3">From problem to fixed in 4 easy steps</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3 reveal delay-1"><div class="lf-hiw-step"><div class="lf-hiw-num">01</div><div><h5>Pick a Service</h5><p>Choose from electrician, plumber, AC, cleaning, and more.</p></div></div></div>
+      <div class="col-md-6 col-lg-3 reveal delay-2"><div class="lf-hiw-step"><div class="lf-hiw-num">02</div><div><h5>Compare Workers</h5><p>View real ratings, prices, experience, and verified reviews side by side.</p></div></div></div>
+      <div class="col-md-6 col-lg-3 reveal delay-3"><div class="lf-hiw-step"><div class="lf-hiw-num">03</div><div><h5>Book a Slot</h5><p>Select a date and time. Worker arrives with tools, on schedule.</p></div></div></div>
+      <div class="col-md-6 col-lg-3 reveal delay-4"><div class="lf-hiw-step"><div class="lf-hiw-num">04</div><div><h5>Confirm &amp; Rate</h5><p>Pay the worker directly. Confirm completion and leave a star review.</p></div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="lf-stats-bar">
+  <div class="container">
+    <div class="row g-4 text-center">
+      <div class="col-6 col-md-3 reveal delay-1"><div class="lf-stat-big" data-count="500">0<span>+</span></div><div class="lf-stat-lbl">Verified Workers</div></div>
+      <div class="col-6 col-md-3 reveal delay-2"><div class="lf-stat-big" data-count="12000">0<span>+</span></div><div class="lf-stat-lbl">Repairs Completed</div></div>
+      <div class="col-6 col-md-3 reveal delay-3"><div class="lf-stat-big" data-count="35">0<span>+</span></div><div class="lf-stat-lbl">Areas Covered</div></div>
+      <div class="col-6 col-md-3 reveal delay-4"><div class="lf-stat-big" data-count="98">0<span>%</span></div><div class="lf-stat-lbl">Customer Satisfaction</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="lf-testi" id="testimonials">
+  <div class="container">
+    <div class="text-center mb-5 reveal">
+      <span class="lf-section-eyebrow">Real Reviews</span>
+      <h2 class="lf-section-h2 mt-3">Homeowners love LocalFix</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4 reveal delay-1">
+        <div class="lf-testi-card">
+          <div class="lf-testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <p class="lf-testi-text">"Found an electrician within 10 minutes. He fixed our MCB board in under an hour. Super professional and transparent pricing. No surprises!"</p>
+          <div class="lf-testi-author"><div class="lf-testi-avatar">NK</div><div><div class="lf-testi-name">Navdeep Kaur</div><div class="lf-testi-loc"><i class="bi bi-geo-alt"></i> Model Town, Ludhiana</div></div></div>
+        </div>
+      </div>
+      <div class="col-md-4 reveal delay-2">
+        <div class="lf-testi-card">
+          <div class="lf-testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <p class="lf-testi-text">"Booked a plumber for our bathroom pipe leak. Arrived on time, fixed it cleanly, did not overcharge. LocalFix is now my go-to for home repairs."</p>
+          <div class="lf-testi-author"><div class="lf-testi-avatar">RS</div><div><div class="lf-testi-name">Rajesh Sharma</div><div class="lf-testi-loc"><i class="bi bi-geo-alt"></i> Sarabha Nagar, Ludhiana</div></div></div>
+        </div>
+      </div>
+      <div class="col-md-4 reveal delay-3">
+        <div class="lf-testi-card">
+          <div class="lf-testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <p class="lf-testi-text">"AC was not cooling for months. The LocalFix technician did a jet-pump cleaning and gas refill. Works like new now! Highly recommend this platform."</p>
+          <div class="lf-testi-author"><div class="lf-testi-avatar">PM</div><div><div class="lf-testi-name">Priya Mehta</div><div class="lf-testi-loc"><i class="bi bi-geo-alt"></i> BRS Nagar, Ludhiana</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lf-cta-band">
+  <div class="container position-relative" style="z-index:1;">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-7 reveal-l">
+        <span class="lf-cta-label">For Workers</span>
+        <h2 class="lf-cta-h2">Have a skill? Start earning with LocalFix.</h2>
+        <p class="lf-cta-sub">Join our network of verified workers. Get direct bookings from homeowners — zero commission, zero platform fees.</p>
+        <div class="d-flex gap-3 flex-wrap mt-3">
+          <span class="lf-cta-check"><i class="bi bi-check-circle-fill"></i> Free to register</span>
+          <span class="lf-cta-check"><i class="bi bi-check-circle-fill"></i> Set your own prices</span>
+          <span class="lf-cta-check"><i class="bi bi-check-circle-fill"></i> Keep all your earnings</span>
+        </div>
+      </div>
+      <div class="col-lg-5 text-lg-end reveal-r">
+        <a href="pages/auth.html?mode=register&role=worker" class="lf-cta-main-btn">
+          <i class="bi bi-person-badge-fill me-2"></i> Join as Worker
+        </a>
+        <div class="mt-3 lf-cta-signin">Already registered? <a href="pages/auth.html">Sign In &rarr;</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="lf-footer-new" id="footer">
+  <div class="container">
+    <div class="row g-5">
+      <div class="col-lg-4 col-md-12">
+        <div class="mb-3"><div class="lf-brand-mark" style="font-size:1.4rem;">Local<span>Fix</span></div><div class="lf-footer-tagline">Trusted Home Services &middot; Ludhiana</div></div>
+        <p class="lf-footer-desc">Connecting homeowners with verified local technicians for fast, affordable, reliable doorstep repairs.</p>
+        <div class="lf-footer-socials mt-3">
+          <a href="#" title="Facebook"><i class="bi bi-facebook"></i></a>
+          <a href="#" title="Instagram"><i class="bi bi-instagram"></i></a>
+          <a href="#" title="Twitter"><i class="bi bi-twitter-x"></i></a>
+          <a href="#" title="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 col-lg-2">
+        <h6 class="lf-footer-heading">Services</h6>
+        <a href="pages/worker-search.html?category=electrician" class="lf-footer-link">Electrician</a>
+        <a href="pages/worker-search.html?category=plumber" class="lf-footer-link">Plumber</a>
+        <a href="pages/worker-search.html?category=ac_repair" class="lf-footer-link">AC Repair</a>
+        <a href="pages/worker-search.html?category=ro_repair" class="lf-footer-link">RO Repair</a>
+        <a href="pages/worker-search.html?category=carpenter" class="lf-footer-link">Carpenter</a>
+        <a href="pages/worker-search.html?category=cleaning" class="lf-footer-link">Home Cleaning</a>
+      </div>
+      <div class="col-6 col-md-3 col-lg-2">
+        <h6 class="lf-footer-heading">Company</h6>
+        <a href="#" class="lf-footer-link">About LocalFix</a>
+        <a href="#" class="lf-footer-link">Careers</a>
+        <a href="#" class="lf-footer-link">Privacy Policy</a>
+        <a href="#" class="lf-footer-link">Terms of Use</a>
+      </div>
+      <div class="col-6 col-md-3 col-lg-2">
+        <h6 class="lf-footer-heading">For Workers</h6>
+        <a href="pages/auth.html?mode=register&role=worker" class="lf-footer-link">Register as Worker</a>
+        <a href="pages/auth.html" class="lf-footer-link">Worker Sign In</a>
+        <a href="#" class="lf-footer-link">Worker Guidelines</a>
+      </div>
+      <div class="col-6 col-md-3 col-lg-2">
+        <h6 class="lf-footer-heading">Support</h6>
+        <a href="#" class="lf-footer-link">Help Center</a>
+        <a href="tel:+911800001234" class="lf-footer-link">&#128222; 1800-001-234</a>
+        <a href="mailto:support@localfix.in" class="lf-footer-link">&#9993; support@localfix.in</a>
+      </div>
+    </div>
+    <hr class="lf-footer-divider">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div class="lf-footer-copy">© 2026 LocalFix. All rights reserved. Built with &#10084; for Ludhiana.</div>
+      <div class="lf-footer-copy">
+        <a href="#" class="lf-footer-bottom-link">Privacy</a>
+        <a href="#" class="lf-footer-bottom-link ms-3">Terms</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/sampleData.js"></script>
+<script>
+const nav = document.getElementById("mainNav");
+window.addEventListener("scroll", function() { nav.classList.toggle("scrolled", window.scrollY > 50); });
+
+function heroSearch() {
+  const cat = document.getElementById("heroCategorySelect").value;
+  window.location.href = cat ? ("pages/worker-search.html?category=" + cat) : "pages/worker-search.html";
+}
+
+const revObs = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add("visible"); revObs.unobserve(e.target); } });
+}, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+document.querySelectorAll(".reveal, .reveal-l, .reveal-r").forEach(function(el) { revObs.observe(el); });
+
+const ctrObs = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) {
+    if (e.isIntersecting) {
+      var el = e.target; var target = Number(el.dataset.count);
+      var suffix = (el.innerHTML.match(/<span>(.*?)<\/span>/) || ["",""])[1];
+      var current = 0; var step = target / 60;
+      var timer = setInterval(function() {
+        current = Math.min(current + step, target);
+        el.innerHTML = Math.floor(current).toLocaleString() + "<span>" + suffix + "</span>";
+        if (current >= target) clearInterval(timer);
+      }, 20);
+      ctrObs.unobserve(el);
+    }
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll("[data-count]").forEach(function(el) { ctrObs.observe(el); });
+
+// Theme Toggle
+const themeBtn = document.getElementById("themeToggleBtn");
+const currentTheme = localStorage.getItem("lf_theme") || "light";
+document.documentElement.setAttribute("data-theme", currentTheme);
+updateThemeIcon(currentTheme);
+
+themeBtn.addEventListener("click", () => {
+  const activeTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", activeTheme);
+  localStorage.setItem("lf_theme", activeTheme);
+  updateThemeIcon(activeTheme);
+});
+
+function updateThemeIcon(theme) {
+  const icon = themeBtn.querySelector("i");
+  if (theme === "dark") {
+    icon.className = "bi bi-sun-fill text-warning";
+  } else {
+    icon.className = "bi bi-moon-stars text-white";
+  }
+}
+</script>
+</body>
+</html>

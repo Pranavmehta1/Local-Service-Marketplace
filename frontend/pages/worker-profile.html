@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worker Profile &amp; Reviews — LocalFix</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<!-- Leaflet Map Styles -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="../css/style.css" rel="stylesheet">
+</head>
+<body style="background: var(--lf-muted);">
+
+<!-- ================= NAVBAR ================= -->
+<nav class="navbar navbar-expand-lg lf-navbar scrolled">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-3">
+      <button type="button" class="btn-lf-back" onclick="lfGoBack('worker-search.html')">
+        <i class="bi bi-arrow-left"></i> <span>Back to Workers</span>
+      </button>
+      <a href="../index.html" id="profileNavLogo"></a>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="customer-dashboard.html" class="btn btn-lf-outline btn-sm"><i class="bi bi-person me-1"></i>Dashboard</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4" id="profileRoot">
+  <!-- Filled dynamically by worker-profile.js -->
+</div>
+
+<!-- ================= 1-5 STAR RATING & REVIEW MODAL ================= -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="reviewModalLabel">
+          <i class="bi bi-star-fill text-warning me-2"></i>Rate &amp; Review Worker
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="workerReviewForm">
+        <div class="modal-body">
+          <div class="text-center py-2 mb-3">
+            <label class="form-label small fw-bold text-muted d-block mb-2">Select Your Star Rating</label>
+            <div class="lf-star-picker justify-content-center mb-2">
+              <button type="button" class="lf-star-btn" data-value="1"><i class="bi bi-star-fill"></i></button>
+              <button type="button" class="lf-star-btn" data-value="2"><i class="bi bi-star-fill"></i></button>
+              <button type="button" class="lf-star-btn" data-value="3"><i class="bi bi-star-fill"></i></button>
+              <button type="button" class="lf-star-btn" data-value="4"><i class="bi bi-star-fill"></i></button>
+              <button type="button" class="lf-star-btn" data-value="5"><i class="bi bi-star-fill"></i></button>
+            </div>
+            <div id="selectedRatingLabel" class="lf-rating-label">5 Stars — Excellent 🤩</div>
+            <input type="hidden" id="selectedRatingValue" value="5">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Your Name</label>
+            <input type="text" class="form-control" id="reviewerName" placeholder="e.g. Parvesh Mehta">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Your Review &amp; Experience</label>
+            <textarea class="form-control" id="reviewComment" rows="4" required placeholder="Describe the service quality, punctuality, and work done..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-lf-primary btn-sm px-4">Submit Review</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= REPORT ISSUE MODAL ================= -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="bi bi-flag text-danger me-2"></i>Report an Issue</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="reportWorkerForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Subject / Reason</label>
+            <input type="text" class="form-control" id="reportSubject" required placeholder="e.g. Overcharged, Late arrival, Poor work">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Priority</label>
+            <select class="form-select" id="reportPriority">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High (Urgent)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Description</label>
+            <textarea class="form-control" id="reportDetails" rows="4" required placeholder="Please provide details of what went wrong..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger btn-sm px-3">Submit Complaint</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer class="lf-footer mt-5">
+  <div class="container text-center small text-muted">
+    © 2026 LocalFix. All rights reserved. Trusted local service network.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Leaflet Map JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/sampleData.js"></script>
+<script src="../js/maps.js"></script>
+<script src="../js/worker-profile.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const navLogo = document.getElementById('profileNavLogo');
+    if (navLogo) navLogo.innerHTML = lfBrandLogo(false);
+  });
+</script>
+</body>
+</html>
