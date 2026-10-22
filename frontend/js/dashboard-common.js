@@ -31,7 +31,8 @@ function initLogout() {
   document.querySelectorAll('.lf-logout').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.preventDefault();
-      if (confirm('Are you sure you want to log out?')) {
+      const msg = window.i18n ? window.i18n.t('dash.confirm_logout', 'Are you sure you want to log out?') : 'Are you sure you want to log out?';
+      if (confirm(msg)) {
         window.Storage.logout();
         window.location.href = 'auth.html';
       }
@@ -55,7 +56,8 @@ function renderCommonNotifications() {
   }
 
   if (!notifs.length) {
-    list.innerHTML = '<li><span class="dropdown-item-text small text-muted text-center py-3 d-block">No notifications right now</span></li>';
+    const emptyMsg = window.i18n ? window.i18n.t('dash.no_notifications', 'No notifications right now') : 'No notifications right now';
+    list.innerHTML = `<li><span class="dropdown-item-text small text-muted text-center py-3 d-block">${emptyMsg}</span></li>`;
     return;
   }
 
@@ -71,3 +73,4 @@ function renderCommonNotifications() {
     </li>
   `).join('<li><hr class="dropdown-divider my-1"></li>');
 }
+

@@ -17,6 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminTabs();
   refreshAdminData();
   renderCharts();
+
+  window.addEventListener("lf:lang-changed", () => {
+    refreshAdminData();
+  });
 });
 
 function refreshAdminData() {

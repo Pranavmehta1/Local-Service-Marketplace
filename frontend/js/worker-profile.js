@@ -1,4 +1,4 @@
-﻿/**
+/**
  * LocalFix Worker Profile & 1-5 Star Reviews Breakdown
  * - "No ratings yet" support for unreviewed workers
  * - Real-time rating recalculation
@@ -23,12 +23,17 @@ document.addEventListener("DOMContentLoaded", () => {
   renderProfile(worker);
   initReviewModal(worker);
   initReportModal(worker);
+
+  window.addEventListener("lf:lang-changed", () => {
+    renderProfile(worker);
+  });
 });
 
 function renderProfile(w) {
   const reviews      = window.Storage.getWorkerReviews(w.id);
   const totalReviews = reviews.length;
   const surcharge    = window.Storage.getDistanceSurcharge ? window.Storage.getDistanceSurcharge(w) : 0;
+  const t            = (k, fb) => (window.i18n ? window.i18n.t(k, fb) : fb);
 
   const starCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
   reviews.forEach((r) => {
@@ -49,16 +54,16 @@ function renderProfile(w) {
     ? `<div class="mb-3 d-flex align-items-center justify-content-center gap-2">
          ${lfRenderStars(w.rating)}
          <strong class="fs-5 text-dark">${w.rating}</strong>
-         <span class="text-muted small">(${totalReviews} reviews)</span>
+         <span class="text-muted small">(${totalReviews} ${t("admin.reviews", "reviews")})</span>
        </div>`
-    : `<div class="mb-3 text-muted small fst-italic"><i class="bi bi-star me-1"></i>No ratings yet &middot; Be the first to review!</div>`;
+    : `<div class="mb-3 text-muted small fst-italic"><i class="bi bi-star me-1"></i>${t("stars.no_ratings", "No ratings yet")}</div>`;
 
   const breakdownSectionHtml = totalReviews > 0
     ? `<div class="row align-items-center mb-4 g-3">
          <div class="col-sm-4 text-center border-end">
            <div class="lf-display display-4 fw-bold text-dark">${w.rating}</div>
            <div class="mb-1">${lfRenderStars(w.rating)}</div>
-           <div class="text-muted small">Based on ${totalReviews} verified reviews</div>
+           <div class="text-muted small">Based on ${totalReviews} reviews</div>
          </div>
          <div class="col-sm-8 ps-sm-4">
            ${breakdown.map((b) => `
@@ -72,8 +77,7 @@ function renderProfile(w) {
        </div>`
     : `<div class="text-center py-4 text-muted bg-light rounded-3 mb-4">
          <i class="bi bi-star fs-3 text-muted opacity-50 d-block mb-2"></i>
-         <div class="fw-semibold">No reviews written yet</div>
-         <div class="small">Have you worked with ${w.name}? Click &ldquo;Rate Worker&rdquo; to share your experience!</div>
+         <div class="fw-semibold">${t("worker.no_reviews_yet", "No reviews written yet.")}</div>
        </div>`;
 
   root.innerHTML = `
@@ -86,52 +90,52 @@ function renderProfile(w) {
           </div>
           <h4 class="mb-1 fw-bold">${w.name}</h4>
           <div class="mb-2">
-            ${w.verified ? '<span class="lf-badge-verified"><i class="bi bi-patch-check-fill"></i> Verified Service Worker</span>' : '<span class="badge bg-secondary">Verification Pending</span>'}
+            ${w.verified ? `<span class="lf-badge-verified"><i class="bi bi-patch-check-fill"></i> ${t("worker.verified_worker", "Verified Service Worker")}</span>` : `<span class="badge bg-secondary">${t("worker.verif_pending", "Verification Pending")}</span>`}
           </div>
           
           ${ratingHeaderHtml}
 
           <div class="text-muted small mb-3">
-            <span class="badge bg-light text-dark border me-1">${LF_SERVICE_LABELS[w.category] || w.category}</span>
-            <span>${w.experience} years experience</span>
+            <span class="badge bg-light text-dark border me-1">${lfGetServiceName(w.category)}</span>
+            <span>${w.experience} ${t("worker.yrs_exp", "years experience")}</span>
           </div>
 
           <div class="d-grid gap-2">
             <a href="booking.html?worker=${w.id}" class="btn btn-lf-primary py-2">
-              <i class="bi bi-calendar-check me-1"></i> Book This Worker
+              <i class="bi bi-calendar-check me-1"></i> ${t("worker.book_worker", "Book This Worker")}
             </a>
             <button class="btn btn-lf-outline btn-sm" data-bs-toggle="modal" data-bs-target="#reviewModal">
-              <i class="bi bi-star-fill text-warning me-1"></i> Write a Review &amp; Rate
+              <i class="bi bi-star-fill text-warning me-1"></i> ${t("worker.write_review", "Write a Review & Rate")}
             </button>
             <button class="btn btn-light btn-sm text-muted" data-bs-toggle="modal" data-bs-target="#reportModal">
-              <i class="bi bi-flag me-1"></i> Report an Issue
+              <i class="bi bi-flag me-1"></i> ${t("worker.report_issue", "Report an Issue")}
             </button>
           </div>
         </div>
 
         <div class="lf-card p-4 mt-3">
-          <h6 class="fw-bold mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Worker Details</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-info-circle text-primary me-2"></i>${t("worker.details_heading", "Worker Details")}</h6>
           <div class="small text-muted mb-2 d-flex align-items-center gap-2">
-            <i class="bi bi-geo-alt text-primary"></i> <span>Service Area: <strong>${w.area}</strong></span>
+            <i class="bi bi-geo-alt text-primary"></i> <span>${t("worker.service_area", "Service Area")}: <strong>${w.area}</strong></span>
           </div>
           <div class="small text-muted mb-2 d-flex align-items-center gap-2">
-            <i class="bi bi-tag text-primary"></i> <span>Visit Charge: <strong class="lf-mono text-dark fs-6">&#8377;${w.price}</strong></span>
+            <i class="bi bi-tag text-primary"></i> <span>${t("worker.visiting_fee", "Visit Charge")}: <strong class="lf-mono text-dark fs-6">&#8377;${w.price}</strong></span>
           </div>
-          ${surcharge > 0 ? `<div class="small text-warning mb-2 d-flex align-items-center gap-2"><i class="bi bi-exclamation-triangle-fill"></i> <span>Long distance travel: <strong>+&#8377;${surcharge}</strong></span></div>` : ""}
+          ${surcharge > 0 ? `<div class="small text-warning mb-2 d-flex align-items-center gap-2"><i class="bi bi-exclamation-triangle-fill"></i> <span>${t("worker.travel", "Travel")}: <strong>+&#8377;${surcharge}</strong></span></div>` : ""}
           <div class="small text-muted mb-2 d-flex align-items-center gap-2">
-            <i class="bi bi-briefcase text-primary"></i> <span>Completed Jobs: <strong>${w.jobs || 0}+</strong></span>
+            <i class="bi bi-briefcase text-primary"></i> <span>${t("dash.completed_jobs", "Completed Jobs")}: <strong>${w.jobs || 0}+</strong></span>
           </div>
           <div class="small text-muted mb-2 d-flex align-items-center gap-2">
-            <i class="bi bi-clock text-primary"></i> <span>Working Hours: <strong>${w.workingHours || "09:00 AM - 08:00 PM"}</strong></span>
+            <i class="bi bi-clock text-primary"></i> <span>${t("worker.working_hours", "Working Hours")}: <strong>${w.workingHours || "09:00 AM - 08:00 PM"}</strong></span>
           </div>
           <div class="small text-muted d-flex align-items-center gap-2">
-            <i class="bi bi-telephone text-primary"></i> <span>Phone: <strong>${w.phone || "+91 98765 00000"}</strong></span>
+            <i class="bi bi-telephone text-primary"></i> <span>${t("worker.phone", "Phone")}: <strong>${w.phone || "+91 98765 00000"}</strong></span>
           </div>
         </div>
 
         <!-- Skills Card -->
         <div class="lf-card p-4 mt-3">
-          <h6 class="fw-bold mb-3"><i class="bi bi-tools text-primary me-2"></i>Skills &amp; Expertise</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-tools text-primary me-2"></i>${t("worker.skills_heading", "Skills & Expertise")}</h6>
           <div class="d-flex flex-wrap gap-1">
             ${(w.skills || ["Wiring", "Switchboard Repair", "Fan Fix", "Inverter Setup"]).map((s) => `<span class="badge bg-light text-dark border">${s}</span>`).join("")}
           </div>
@@ -140,7 +144,7 @@ function renderProfile(w) {
         <!-- Service Area Map Card -->
         <div class="lf-card p-4 mt-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="fw-bold mb-0"><i class="bi bi-geo-alt-fill text-danger me-1"></i> Service Coverage Map</h6>
+            <h6 class="fw-bold mb-0"><i class="bi bi-geo-alt-fill text-danger me-1"></i> ${t("worker.coverage_map", "Service Coverage Map")}</h6>
             <span class="badge bg-light text-primary border">3 km Radius</span>
           </div>
           <div class="small text-muted mb-2">${w.area} &amp; nearby sectors</div>
@@ -154,18 +158,18 @@ function renderProfile(w) {
       <div class="col-lg-8">
         <!-- About Section -->
         <div class="lf-card p-4 mb-4">
-          <h5 class="fw-bold mb-2">About the Worker</h5>
+          <h5 class="fw-bold mb-2">${t("worker.about_heading", "About the Worker")}</h5>
           <p class="text-muted mb-0 lh-base">
-            ${w.about || `Experienced ${LF_SERVICE_LABELS[w.category] || w.category} worker serving ${w.area} and nearby areas. Known for punctual arrivals, honest quotes, and high quality repairs with genuine parts.`}
+            ${w.about || `Experienced ${lfGetServiceName(w.category)} worker serving ${w.area} and nearby areas. Known for punctual arrivals, honest quotes, and high quality repairs with genuine parts.`}
           </p>
         </div>
 
         <!-- Rating Breakdown Card -->
         <div class="lf-card p-4 mb-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold mb-0">Customer Ratings &amp; Breakdown</h5>
+            <h5 class="fw-bold mb-0">${t("worker.reviews_heading", "Customer Ratings & Breakdown")}</h5>
             <button class="btn btn-lf-outline btn-sm" data-bs-toggle="modal" data-bs-target="#reviewModal">
-              <i class="bi bi-pencil-square me-1"></i> Rate Worker
+              <i class="bi bi-pencil-square me-1"></i> ${t("worker.rate_worker", "Rate Worker")}
             </button>
           </div>
           ${breakdownSectionHtml}
@@ -173,10 +177,10 @@ function renderProfile(w) {
 
         <!-- Verified Reviews Feed -->
         <div class="lf-card p-4">
-          <h5 class="fw-bold mb-3">Verified Customer Reviews (${totalReviews})</h5>
+          <h5 class="fw-bold mb-3">${t("worker.verified_reviews_title", "Verified Customer Reviews")} (${totalReviews})</h5>
           <div class="d-flex flex-column gap-3" id="reviewsContainer">
             ${totalReviews === 0
-              ? '<div class="text-muted small py-3 text-center">No reviews written yet.</div>'
+              ? `<div class="text-muted small py-3 text-center">${t("worker.no_reviews_yet", "No reviews written yet.")}</div>`
               : reviews.map((r) => `
                 <div class="p-3 rounded-3 bg-light border">
                   <div class="d-flex justify-content-between align-items-start mb-2">
@@ -250,14 +254,43 @@ function initReviewModal(w) {
   });
 
   const currentUser = window.Storage.getCurrentUser();
+
+  // If not logged in, hide the review button and show sign-in prompt instead
+  const reviewBtnEls = document.querySelectorAll('[data-bs-target="#reviewModal"]');
+  if (!currentUser) {
+    reviewBtnEls.forEach((btn) => {
+      btn.removeAttribute('data-bs-toggle');
+      btn.removeAttribute('data-bs-target');
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Save intended destination and redirect to login
+        sessionStorage.setItem('redirect_after_login', window.location.href);
+        lfShowToast('Please sign in to submit a review.', 'warning');
+        setTimeout(() => { window.location.href = 'auth.html'; }, 1200);
+      });
+    });
+  }
+
   const nameInput = document.getElementById("reviewerName");
-  if (nameInput && currentUser) nameInput.value = currentUser.name;
+  // Always pre-fill and lock reviewer name from the authenticated session
+  if (nameInput) {
+    nameInput.value = currentUser ? currentUser.name : "";
+    nameInput.readOnly = true;
+  }
 
   form?.addEventListener("submit", (e) => {
     e.preventDefault();
+
+    // Re-check auth at submit time
+    const submitUser = window.Storage.getCurrentUser();
+    if (!submitUser) {
+      alert("You must be signed in to submit a review. Please sign in first.");
+      window.location.href = "auth.html";
+      return;
+    }
+
     const commentEl = document.getElementById("reviewComment");
     const comment   = commentEl ? commentEl.value.trim() : "";
-    const name      = nameInput ? nameInput.value.trim() : "Verified Customer";
 
     if (!comment) {
       alert("Please enter a short comment about your experience.");
@@ -266,7 +299,8 @@ function initReviewModal(w) {
 
     window.Storage.addReview({
       workerId:     w.id,
-      customerName: name,
+      workerName:   w.name,
+      // customerName is always taken from session — never from a form field
       rating:       selectedRating,
       comment,
     });

@@ -1,8 +1,9 @@
 /**
  * LocalFix Authentication Logic
  * - Inline field validation (no alert popups)
- * - Multi-user isolation
- * - Redirect by role
+ * - Multi-user role isolation
+ * - 1-second loading page screen before entering dashboard
+ * - State and area aware registration
  */
 document.addEventListener("DOMContentLoaded", () => {
   const roleButtons          = document.querySelectorAll(".lf-role-btn");
@@ -20,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (params.get("role") === "worker") currentRole = "worker";
   if (params.get("mode") === "register") currentTab = "register";
 
-  // ── Inline Validation Helpers ────────────────────────────────────────────
+  // ── Inline Validation Helpers ─────────────────────────────────────────────
   const showFieldError = (inputEl, msg) => {
     if (!inputEl) return;
     inputEl.classList.add("lf-input-error");
@@ -53,9 +54,48 @@ document.addEventListener("DOMContentLoaded", () => {
     return valid;
   };
 
-  // ── Role/Tab UI ──────────────────────────────────────────────────────────
+  // ── Role/Tab UI ───────────────────────────────────────────────────────────
+  const updateRoleSpecificTexts = () => {
+    const title  = document.getElementById("authFormTitle");
+    const desc   = document.getElementById("authFormDesc");
+    const btn    = document.getElementById("loginSubmitBtn");
+    const t = (k, d) => (window.i18n ? window.i18n.t(k, d) : d);
+
+    if (currentTab === "login") {
+      if (currentRole === "worker") {
+        if (title) title.textContent = t("auth.login_worker_title", "🛠️ Service Worker Sign In");
+        if (desc)  desc.textContent  = t("auth.login_worker_desc", "Log in to manage customer bookings, accept repair jobs, and check earnings.");
+        if (btn) {
+          btn.textContent = t("auth.btn_signin_worker", "Sign In as Service Worker");
+          btn.className   = "btn w-100 py-2 fw-semibold";
+          btn.style.cssText = "background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:10px;";
+        }
+      } else {
+        if (title) title.textContent = t("auth.login_cust_title", "👤 Customer Sign In");
+        if (desc)  desc.textContent  = t("auth.login_cust_desc", "Access your home service bookings, track technician arrival, and view bills.");
+        if (btn) {
+          btn.textContent = t("auth.btn_signin_cust", "Sign In as Customer");
+          btn.className   = "btn btn-lf-primary w-100 py-2 fw-semibold";
+          btn.style.cssText = "";
+        }
+      }
+    } else {
+      // register tab
+      if (currentRole === "worker") {
+        if (title) title.textContent = t("auth.reg_worker_title", "🛠️ Join as Service Worker");
+        if (desc)  desc.textContent  = t("auth.reg_worker_desc", "Apply to join LocalFix's verified worker network across your state and area.");
+      } else {
+        if (title) title.textContent = t("auth.reg_cust_title", "👤 Create Customer Account");
+        if (desc)  desc.textContent  = t("auth.reg_cust_desc", "Register to book verified electricians, plumbers, and technicians.");
+      }
+    }
+  };
+
+  window.addEventListener("lf:lang-changed", updateRoleSpecificTexts);
+
   const applyRoleUI = () => {
     roleButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.role === currentRole));
+    updateRoleSpecificTexts();
   };
 
   const applyTabUI = () => {
@@ -68,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
     customerRegisterForm?.classList.toggle("d-none", !(currentTab === "register" && currentRole === "customer"));
     workerRegisterForm?.classList.toggle("d-none",   !(currentTab === "register" && currentRole === "worker"));
     if (loginError) loginError.classList.add("d-none");
+    updateRoleSpecificTexts();
   };
 
   roleButtons.forEach((btn) => {
@@ -79,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
   applyRoleUI();
   applyTabUI();
 
-  // ── Redirect by Role ─────────────────────────────────────────────────────
+  // ── Redirect by Role ──────────────────────────────────────────────────────
   const redirectByUserRole = (user) => {
     const pendingBookingWorker = sessionStorage.getItem("redirect_to_booking");
     if (user.role === "customer" && pendingBookingWorker) {
@@ -90,16 +131,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (user.role === "admin")  window.location.href = "admin-dashboard.html";
     else if (user.role === "worker") window.location.href = "worker-dashboard.html";
     else window.location.href = "customer-dashboard.html";
-  };
-
-  // ── Demo Login ───────────────────────────────────────────────────────────
-  window.loginAsDemo = (email) => {
-    try {
-      const user = window.Storage.loginUser(email, "password");
-      redirectByUserRole(user);
-    } catch (err) {
-      if (loginError) { loginError.textContent = err.message; loginError.classList.remove("d-none"); }
-    }
   };
 
   // ── Login Form ───────────────────────────────────────────────────────────
@@ -119,8 +150,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const user = window.Storage.loginUser(emailEl.value.trim(), passwordEl.value);
-      lfShowToast("Logged in successfully!");
-      setTimeout(() => redirectByUserRole(user), 400);
+
+      if (currentRole === "worker" && user.role === "customer") {
+        showFieldError(emailEl, "This email belongs to a Customer account. Please switch to 'Customer Account' above or use a worker account (e.g. rahul@localfix.com).");
+        return;
+      }
+      if (currentRole === "customer" && user.role === "worker") {
+        showFieldError(emailEl, "This email belongs to a Service Worker account. Please switch to 'Service Worker' above.");
+        return;
+      }
+
+      redirectByUserRole(user);
     } catch (err) {
       showFieldError(emailEl, err.message);
     }
@@ -133,6 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const emailEl    = document.getElementById("custEmail");
     const phoneEl    = document.getElementById("custPhone");
     const passwordEl = document.getElementById("custPassword");
+    const stateEl    = document.getElementById("custState");
     const locationEl = document.getElementById("custLocation");
 
     [nameEl, emailEl, phoneEl, passwordEl].forEach(clearFieldError);
@@ -156,10 +197,10 @@ document.addEventListener("DOMContentLoaded", () => {
         phone:    phoneEl.value.trim(),
         password: passwordEl.value,
         role:     "customer",
-        location: locationEl?.value.trim() || "Ludhiana",
+        state:    stateEl?.value || "Punjab",
+        location: locationEl?.value.trim() || "Model Town, Ludhiana",
       });
-      lfShowToast("Account created! Welcome to LocalFix.");
-      setTimeout(() => redirectByUserRole(user), 600);
+      redirectByUserRole(user);
     } catch (err) {
       showFieldError(emailEl, err.message);
     }
@@ -174,17 +215,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const passwordEl = document.getElementById("workerPassword");
     const categoryEl = document.getElementById("workerCategory");
     const expEl      = document.getElementById("workerExp");
-    const priceEl    = document.getElementById("workerPrice");
+    const stateEl    = document.getElementById("workerState");
     const areaEl     = document.getElementById("workerArea");
+    const priceEl    = document.getElementById("workerPrice");
     const skillsEl   = document.getElementById("workerSkills");
 
-    [nameEl, emailEl, phoneEl, passwordEl, priceEl].forEach(clearFieldError);
+    [nameEl, emailEl, phoneEl, passwordEl, priceEl, areaEl].forEach(clearFieldError);
 
     if (!validateRequired([
       { el: nameEl,     msg: "Your full name is required." },
       { el: emailEl,    msg: "Email address is required." },
       { el: phoneEl,    msg: "Phone number is required." },
       { el: passwordEl, msg: "Password is required (min 6 chars)." },
+      { el: areaEl,     msg: "Please enter your city and service area." },
       { el: priceEl,    msg: "Please enter your visit charge (₹)." },
     ])) return;
 
@@ -202,12 +245,12 @@ document.addEventListener("DOMContentLoaded", () => {
         role:       "worker",
         category:   categoryEl?.value || "electrician",
         experience: expEl?.value || "1",
-        skills:     skillsEl?.value || "",
-        location:   areaEl?.value.trim() || "Ludhiana",
+        state:      stateEl?.value || "Punjab",
+        location:   areaEl?.value.trim() || "Model Town, Ludhiana",
         price:      priceEl?.value || "200",
+        skills:     skillsEl?.value || "",
       });
-      lfShowToast("Application submitted! Pending admin verification. Login now.");
-      setTimeout(() => redirectByUserRole(user), 700);
+      redirectByUserRole(user);
     } catch (err) {
       showFieldError(emailEl, err.message);
     }

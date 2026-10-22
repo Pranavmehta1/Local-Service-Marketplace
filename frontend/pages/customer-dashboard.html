@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -9,6 +9,15 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="../css/style.css" rel="stylesheet">
 <link href="../css/dashboard.css" rel="stylesheet">
+<script>
+  (function() {
+    try {
+      const t = localStorage.getItem("lf_theme") || "dark";
+      document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<script src="../js/i18n.js"></script>
 </head>
 <body>
 
@@ -21,18 +30,18 @@
 
     <div class="mb-3 px-2">
       <button type="button" class="btn-lf-back w-100 justify-content-center text-white border-secondary" style="background: rgba(255,255,255,0.06);" onclick="lfGoBack('../index.html')">
-        <i class="bi bi-arrow-left"></i> <span>Back to Home</span>
+        <i class="bi bi-arrow-left"></i> <span data-i18n="nav.back_to_home">Back to Home</span>
       </button>
     </div>
 
     <nav class="nav flex-column">
-      <a class="nav-link active" href="#" data-tab="overview"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-      <a class="nav-link" href="#" data-tab="bookings"><i class="bi bi-calendar-check"></i> My Bookings</a>
-      <a class="nav-link" href="worker-search.html"><i class="bi bi-search"></i> Find Workers</a>
-      <a class="nav-link" href="#" data-tab="complaints"><i class="bi bi-shield-exclamation"></i> Complaints</a>
-      <a class="nav-link" href="#" data-tab="reviews"><i class="bi bi-star"></i> My Reviews</a>
-      <a class="nav-link" href="#" data-tab="profile"><i class="bi bi-person"></i> My Profile</a>
-      <a class="nav-link lf-logout" href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
+      <a class="nav-link active" href="#" data-tab="overview"><i class="bi bi-grid-1x2-fill"></i> <span data-i18n="dash.dashboard">Dashboard</span></a>
+      <a class="nav-link" href="#" data-tab="bookings"><i class="bi bi-calendar-check"></i> <span data-i18n="dash.my_bookings">My Bookings</span></a>
+      <a class="nav-link" href="worker-search.html"><i class="bi bi-search"></i> <span data-i18n="dash.find_workers">Find Workers</span></a>
+      <a class="nav-link" href="#" data-tab="complaints"><i class="bi bi-shield-exclamation"></i> <span data-i18n="dash.complaints">Complaints</span></a>
+      <a class="nav-link" href="#" data-tab="reviews"><i class="bi bi-star"></i> <span data-i18n="dash.my_reviews">My Reviews</span></a>
+      <a class="nav-link" href="#" data-tab="profile"><i class="bi bi-person"></i> <span data-i18n="dash.my_profile">My Profile</span></a>
+      <a class="nav-link lf-logout" href="#"><i class="bi bi-box-arrow-right"></i> <span data-i18n="dash.logout">Logout</span></a>
     </nav>
   </aside>
 
@@ -47,10 +56,12 @@
           <div class="text-muted small" id="userEmail">customer@example.com</div>
         </div>
       </div>
-      <!-- <script> -->
-      <div class="d-flex align-items-center gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm lf-theme-toggle-btn border" id="themeToggleBtn" onclick="lfToggleTheme()" title="Toggle theme">
+          <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+        </button>
         <a href="worker-search.html" class="btn btn-lf-primary btn-sm d-none d-sm-inline-flex">
-          <i class="bi bi-plus-lg me-1"></i> Book a Worker
+          <i class="bi bi-plus-lg me-1"></i> <span data-i18n="worker.book_worker">Book a Worker</span>
         </a>
         <div class="dropdown">
           <button class="btn btn-light position-relative" data-bs-toggle="dropdown">
@@ -70,28 +81,28 @@
           <div class="lf-stat-card">
             <div class="lf-stat-icon"><i class="bi bi-lightning-charge-fill"></i></div>
             <div class="lf-stat-value" id="statActive">0</div>
-            <div class="lf-stat-title">Active Bookings</div>
+            <div class="lf-stat-title" data-i18n="dash.active_bookings">Active Bookings</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="lf-stat-card">
             <div class="lf-stat-icon" style="background:#DCFCE7; color:#166534;"><i class="bi bi-check2-circle"></i></div>
             <div class="lf-stat-value" id="statCompleted">0</div>
-            <div class="lf-stat-title">Completed Services</div>
+            <div class="lf-stat-title" data-i18n="dash.completed_repairs">Completed Services</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="lf-stat-card">
             <div class="lf-stat-icon" style="background:#FEF3C7; color:#92400E;"><i class="bi bi-hourglass-split"></i></div>
             <div class="lf-stat-value" id="statPending">0</div>
-            <div class="lf-stat-title">Pending Requests</div>
+            <div class="lf-stat-title" data-i18n="dash.booking_requests">Pending Requests</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="lf-stat-card">
             <div class="lf-stat-icon"><i class="bi bi-wallet2"></i></div>
             <div class="lf-stat-value lf-mono" id="statSpent">₹0</div>
-            <div class="lf-stat-title">Total Spent</div>
+            <div class="lf-stat-title" data-i18n="dash.total_spent">Total Spent</div>
           </div>
         </div>
       </div>
@@ -277,7 +288,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/storage.js"></script>
+<script src="../js/storage.js?v=lf_v13"></script>
 <script src="../js/sampleData.js"></script>
 <script src="../js/dashboard-common.js"></script>
 <script src="../js/customer-dashboard.js"></script>

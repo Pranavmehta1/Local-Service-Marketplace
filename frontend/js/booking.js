@@ -21,7 +21,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let currentStep  = 1;
   const totalSteps = 7;
-  const stepLabels = ["Service","Problem","Date","Time","Address","Review","Done"];
+
+  function getStepLabels() {
+    const t = (k, fb) => (window.i18n ? window.i18n.t(k, fb) : fb);
+    return [
+      t("booking.step_service", "Service"),
+      t("booking.step_problem", "Problem"),
+      t("booking.step_date", "Date"),
+      t("booking.step_time", "Time"),
+      t("booking.step_address", "Address"),
+      t("booking.step_review", "Review"),
+      t("booking.step_done", "Done"),
+    ];
+  }
 
   // Pre-fill service category
   const serviceSelect = document.getElementById("serviceSelect");
@@ -44,6 +56,12 @@ document.addEventListener("DOMContentLoaded", () => {
   renderTimeSlots();
   renderStepper();
 
+  window.addEventListener("lf:lang-changed", () => {
+    renderStepper();
+    if (currentStep === 6) buildReviewSummary(worker);
+    goToStep(currentStep, worker);
+  });
+
   const minDate = new Date().toISOString().split("T")[0];
   const dateInput = document.getElementById("bookingDate");
   if (dateInput) { dateInput.min = minDate; dateInput.value = minDate; }
@@ -62,7 +80,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderStepper() {
     const el = document.getElementById("wizardSteps");
     if (!el) return;
-    el.innerHTML = stepLabels.map((label, i) => {
+    const labels = getStepLabels();
+    el.innerHTML = labels.map((label, i) => {
       const n = i + 1;
       const cls = n < currentStep ? "done" : n === currentStep ? "active" : "";
       return `<div class="step ${cls}"><div class="dot">${n < currentStep ? '<i class="bi bi-check-lg"></i>' : n}</div><span>${label}</span></div>`;
@@ -125,8 +144,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Review Summary ───────────────────────────────────────────────────────
   function buildReviewSummary(w) {
+    const t = (k, fb) => (window.i18n ? window.i18n.t(k, fb) : fb);
     const service  = document.getElementById("serviceSelect");
-    const sLabel   = service ? service.options[service.selectedIndex].text : "Service";
+    const sLabel   = service ? (window.lfGetServiceName ? lfGetServiceName(service.value) : service.options[service.selectedIndex].text) : "Service";
     const date     = document.getElementById("bookingDate")?.value || "-";
     const slot     = document.querySelector(".lf-timeslot.selected")?.dataset.slot || "Morning";
     const address  = document.getElementById("addressInput")?.value || "-";
@@ -135,15 +155,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalPrice = basePrice + surcharge;
 
     document.getElementById("reviewSummary").innerHTML = `
-      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">Worker</span><strong>${w?.name} (${w?.area})</strong></div>
-      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">Service</span><strong>${sLabel}</strong></div>
-      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">Problem</span><strong class="text-wrap" style="max-width:65%">${problem}</strong></div>
-      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">Date</span><strong>${date}</strong></div>
-      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">Time Slot</span><strong>${slot}</strong></div>
-      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">Address</span><strong>${address}</strong></div>
-      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">Base Charge</span><strong class="lf-mono">&#8377;${basePrice}</strong></div>
-      ${surcharge > 0 ? `<div class="d-flex justify-content-between border-bottom py-2 text-warning"><span>Travel Charge (&gt;10 km)</span><strong class="lf-mono">+&#8377;${surcharge}</strong></div>` : ""}
-      <div class="d-flex justify-content-between py-2"><span class="fw-bold">Total Payable</span><strong class="lf-mono text-primary fs-5">&#8377;${totalPrice}</strong></div>
+      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">${t("worker.tick_worker", "Worker")}</span><strong>${w?.name} (${w?.area})</strong></div>
+      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">${t("booking.step_service", "Service")}</span><strong>${sLabel}</strong></div>
+      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">${t("booking.step_problem", "Problem")}</span><strong class="text-wrap" style="max-width:65%">${problem}</strong></div>
+      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">${t("booking.step_date", "Date")}</span><strong>${date}</strong></div>
+      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">${t("booking.step_time", "Time Slot")}</span><strong>${slot}</strong></div>
+      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">${t("booking.step_address", "Address")}</span><strong>${address}</strong></div>
+      <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">${t("booking.base_charge", "Base Charge")}</span><strong class="lf-mono">&#8377;${basePrice}</strong></div>
+      ${surcharge > 0 ? `<div class="d-flex justify-content-between border-bottom py-2 text-warning"><span>${t("booking.travel_charge", "Travel Charge (>10 km)")}</span><strong class="lf-mono">+&#8377;${surcharge}</strong></div>` : ""}
+      <div class="d-flex justify-content-between py-2"><span class="fw-bold">${t("booking.total_payable", "Total Payable")}</span><strong class="lf-mono text-primary fs-5">&#8377;${totalPrice}</strong></div>
     `;
   }
 
@@ -168,6 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Step Navigation ──────────────────────────────────────────────────────
   function goToStep(step, w) {
+    const t = (k, fb) => (window.i18n ? window.i18n.t(k, fb) : fb);
     document.querySelectorAll(".wizard-pane").forEach((p) => p.classList.remove("active"));
     document.querySelector(`.wizard-pane[data-step="${step}"]`)?.classList.add("active");
     renderStepper();
@@ -193,12 +214,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (step === 6) buildReviewSummary(w);
 
-    if (backBtn) backBtn.style.visibility = step === 1 ? "hidden" : "visible";
+    if (backBtn) {
+      backBtn.style.visibility = step === 1 ? "hidden" : "visible";
+      backBtn.textContent = t("btn.back", "Back");
+    }
     if (step === totalSteps) {
       nav?.classList.add("d-none");
     } else {
       nav?.classList.remove("d-none");
-      if (nextBtn) nextBtn.textContent = step === totalSteps - 1 ? "Confirm & Book" : "Continue";
+      if (nextBtn) nextBtn.textContent = step === totalSteps - 1 ? t("booking.confirm_and_book", "Confirm & Book") : t("btn.continue", "Continue");
     }
   }
 });

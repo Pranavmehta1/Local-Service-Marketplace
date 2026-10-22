@@ -9,16 +9,290 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="../css/style.css" rel="stylesheet">
+<script>
+  (function() {
+    try {
+      const t = localStorage.getItem("lf_theme") || "dark";
+      document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<script src="../js/i18n.js"></script>
 <style>
   body { background: var(--lf-muted); min-height: 100vh; }
-  .lf-auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2.5rem 1rem; }
-  .lf-auth-card { max-width: 980px; width: 100%; margin: 0 auto; background: #fff; border-radius: var(--lf-radius-lg); box-shadow: var(--lf-shadow-lg); overflow: hidden; border: 1px solid var(--lf-border); }
-  .lf-auth-side { background: linear-gradient(160deg, var(--lf-ink), var(--lf-primary-dark)); color: #fff; padding: 3rem 2.5rem; }
-  .lf-role-btn { border: 1.5px solid var(--lf-border); border-radius: var(--lf-radius-md); padding: 1rem; text-align: left; width: 100%; background: #fff; transition: all 0.15s ease; cursor: pointer; }
-  .lf-role-btn:hover, .lf-role-btn.active { border-color: var(--lf-primary); background: var(--lf-primary-light); }
-  .lf-form-panel { padding: 2.8rem 2.4rem; }
-  .lf-demo-pill { cursor: pointer; font-size: 0.78rem; padding: 0.35rem 0.75rem; border-radius: 999px; background: #F1F5F9; border: 1px solid var(--lf-border); transition: all 0.15s ease; color: var(--lf-ink); }
-  .lf-demo-pill:hover { background: var(--lf-primary-light); border-color: var(--lf-primary); color: var(--lf-primary-dark); }
+  .lf-auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+  
+  /* Initial entrance animations with upward movement */
+  @keyframes lfFadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Subtle ambient gradient animation for side panel */
+  @keyframes lfAmbientGlow {
+    0%, 100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1.08) translate(10px, -10px);
+    }
+  }
+
+  .lf-auth-card {
+    max-width: 1020px;
+    width: 100%;
+    margin: 0 auto;
+    background: var(--lf-surface, #fff);
+    border-radius: var(--lf-radius-lg);
+    box-shadow: var(--lf-shadow-lg);
+    overflow: hidden;
+    border: 1px solid var(--lf-border);
+    animation: lfFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Staggered entrance for internal elements */
+  .lf-anim-item {
+    animation: lfFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .lf-anim-delay-1 { animation-delay: 0.08s; }
+  .lf-anim-delay-2 { animation-delay: 0.16s; }
+  .lf-anim-delay-3 { animation-delay: 0.24s; }
+  .lf-anim-delay-4 { animation-delay: 0.32s; }
+
+  /* Left Side Panel with clear, contrast-guaranteed text */
+  .lf-auth-side {
+    background: linear-gradient(160deg, #090e1a 0%, #034870 100%);
+    color: #FFFFFF;
+    padding: 3rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .lf-auth-side::after {
+    content: "";
+    position: absolute;
+    inset: -20px;
+    background: radial-gradient(circle at 75% 25%, rgba(56, 189, 248, 0.22), transparent 55%);
+    pointer-events: none;
+    animation: lfAmbientGlow 10s ease-in-out infinite;
+  }
+  .lf-auth-side h3 {
+    color: #FFFFFF !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  .lf-auth-side .text-white-50 {
+    color: #CBD5E1 !important; /* WCAG AA readable soft light gray on deep blue gradient */
+  }
+  .lf-auth-side .text-white {
+    color: #FFFFFF !important;
+  }
+  .lf-auth-side .badge-verified-card {
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  /* Right Form Panel */
+  .lf-form-panel {
+    padding: 2.8rem 2.4rem;
+    background: var(--lf-surface, #fff);
+    transition: background 0.25s ease;
+  }
+
+  /* Account Selection Cards with smooth hover & elevation */
+  .lf-role-btn {
+    border: 1.5px solid var(--lf-border);
+    border-radius: var(--lf-radius-md);
+    padding: 1.1rem;
+    text-align: left;
+    width: 100%;
+    background: var(--lf-surface, #fff);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.25s ease,
+                background-color 0.25s ease,
+                box-shadow 0.25s ease;
+    cursor: pointer;
+  }
+  .lf-role-btn:hover {
+    border-color: var(--lf-primary);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.12);
+  }
+  .lf-role-btn.active {
+    border-color: var(--lf-primary);
+    background: var(--lf-primary-light);
+    box-shadow: 0 4px 16px rgba(2, 132, 199, 0.16);
+  }
+
+  /* Form inputs & focus animations */
+  .form-control, .form-select {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: var(--lf-primary);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+  }
+
+  /* Tab toggle switcher transition */
+  .lf-tab-toggle button {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Form mode fade transition */
+  form {
+    animation: lfFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* =========================================================
+     DARK MODE SPECIFIC READABILITY ENHANCEMENTS
+     ========================================================= */
+  [data-theme="dark"] body {
+    background: #090D16 !important;
+  }
+  [data-theme="dark"] .lf-auth-card {
+    background-color: #131B2E !important;
+    border-color: #24324D !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+  }
+  [data-theme="dark"] .lf-form-panel {
+    background-color: #131B2E !important;
+  }
+  [data-theme="dark"] #authFormTitle {
+    color: #F8FAFC !important;
+  }
+  [data-theme="dark"] #authFormDesc {
+    color: #CBD5E1 !important; /* Clear readable subtitle */
+  }
+
+  /* Account Selection Cards in Dark Mode */
+  [data-theme="dark"] .lf-role-btn {
+    background-color: #0B1120 !important;
+    border-color: #24324D !important;
+  }
+  [data-theme="dark"] .lf-role-btn .fw-bold {
+    color: #F8FAFC !important;
+  }
+  [data-theme="dark"] .lf-role-btn .small.text-muted {
+    color: #94A3B8 !important;
+  }
+  [data-theme="dark"] .lf-role-btn:hover {
+    border-color: #38BDF8 !important;
+    background-color: #111C33 !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45) !important;
+  }
+  [data-theme="dark"] .lf-role-btn.active {
+    border-color: #38BDF8 !important;
+    background-color: rgba(56, 189, 248, 0.12) !important;
+    box-shadow: 0 0 0 1px #38BDF8, 0 6px 18px rgba(56, 189, 248, 0.15) !important;
+  }
+  [data-theme="dark"] .lf-role-btn.active .fw-bold {
+    color: #FFFFFF !important;
+  }
+  [data-theme="dark"] .lf-role-btn.active .small.text-muted {
+    color: #BAE6FD !important;
+  }
+
+  /* Form Labels & Placeholders */
+  [data-theme="dark"] .form-label {
+    color: #E2E8F0 !important;
+    font-weight: 600;
+  }
+  [data-theme="dark"] .form-control,
+  [data-theme="dark"] .form-select {
+    background-color: #0B1120 !important;
+    border-color: #24324D !important;
+    color: #FFFFFF !important;
+  }
+  [data-theme="dark"] .form-control::placeholder {
+    color: #64748B !important;
+  }
+  [data-theme="dark"] .form-control:focus,
+  [data-theme="dark"] .form-select:focus {
+    background-color: #0F172A !important;
+    border-color: #38BDF8 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.28) !important;
+  }
+
+  /* Tab switcher in Dark Mode */
+  [data-theme="dark"] #tabLogin.btn-lf-dark,
+  [data-theme="dark"] #tabRegister.btn-lf-dark {
+    background: #0284C7 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35) !important;
+  }
+  [data-theme="dark"] #tabLogin.btn-lf-outline,
+  [data-theme="dark"] #tabRegister.btn-lf-outline {
+    background: #0B1120 !important;
+    border: 1px solid #24324D !important;
+    color: #CBD5E1 !important;
+  }
+  [data-theme="dark"] #tabLogin.btn-lf-outline:hover,
+  [data-theme="dark"] #tabRegister.btn-lf-outline:hover {
+    border-color: #38BDF8 !important;
+    color: #FFFFFF !important;
+    background: #152238 !important;
+  }
+
+  /* Back to Home Button */
+  [data-theme="dark"] .btn-lf-back {
+    background: #0B1120 !important;
+    border-color: #24324D !important;
+    color: #CBD5E1 !important;
+  }
+  [data-theme="dark"] .btn-lf-back:hover {
+    background: #172338 !important;
+    border-color: #38BDF8 !important;
+    color: #38BDF8 !important;
+  }
+
+  /* Alerts in Dark Mode */
+  [data-theme="dark"] .alert-warning {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    border-color: rgba(245, 158, 11, 0.4) !important;
+    color: #FDE68A !important;
+  }
+  [data-theme="dark"] .alert-danger {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #FECACA !important;
+  }
+
+  /* Validation Field Errors */
+  .lf-field-error {
+    color: #EF4444;
+    font-size: 0.78rem;
+    font-weight: 500;
+    margin-top: 0.25rem;
+    display: block;
+  }
+  [data-theme="dark"] .lf-field-error {
+    color: #F87171 !important;
+  }
+
+  /* Accessibility: Prefers reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .lf-auth-card,
+    .lf-anim-item,
+    form,
+    .lf-auth-side::after {
+      animation: none !important;
+      transition: none !important;
+      transform: none !important;
+    }
+    .lf-role-btn:hover {
+      transform: none !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -32,18 +306,18 @@
           <div class="mb-4">
             <div id="authLogoContainer"></div>
           </div>
-          <h3 class="text-white mt-4">Verified home services, right at your doorstep.</h3>
-          <p class="text-white-50 mt-2">Connect with trusted electricians, plumbers, AC mechanics and more in your neighbourhood.</p>
+          <h3 class="text-white mt-4 fw-bold" data-i18n="auth.side_title">Verified home repairs, right at your doorstep.</h3>
+          <p class="text-white-50 mt-2" data-i18n="auth.side_sub">Connect with background-checked electricians, plumbers, AC technicians, and cleaners in your city.</p>
         </div>
         <div>
           <div class="p-3 rounded-4 mb-4" style="background: rgba(255,255,255,0.08); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.12);">
-            <div class="fw-semibold text-white small mb-1"><i class="bi bi-patch-check-fill text-info me-1"></i> Verified Network</div>
-            <div class="text-white-50 small">Every worker is background checked and verified before taking bookings.</div>
+            <div class="fw-semibold text-white small mb-1"><i class="bi bi-patch-check-fill text-info me-1"></i> <span data-i18n="auth.net_title">Verified Network</span></div>
+            <div class="text-white-50 small" data-i18n="auth.net_desc">Every technician is verified with identity verification and verified skills before receiving jobs.</div>
           </div>
           <ul class="list-unstyled text-white-50 small mb-0">
-            <li class="mb-2"><i class="bi bi-check-circle-fill text-info me-2"></i>Multi-user isolated sessions</li>
-            <li class="mb-2"><i class="bi bi-check-circle-fill text-info me-2"></i>Direct 1-to-5 star ratings &amp; reviews</li>
-            <li><i class="bi bi-check-circle-fill text-info me-2"></i>Transparent upfront pricing</li>
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-info me-2"></i><span data-i18n="auth.feat_1">Multi-role secure sessions</span></li>
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-info me-2"></i><span data-i18n="auth.feat_2">Double-tick WhatsApp style job confirmation</span></li>
+            <li><i class="bi bi-check-circle-fill text-info me-2"></i><span data-i18n="auth.feat_3">Direct upfront pricing with 0 commission</span></li>
           </ul>
         </div>
       </div>
@@ -52,111 +326,123 @@
       <div class="col-lg-7 lf-form-panel">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <button type="button" class="btn-lf-back" onclick="lfGoBack('../index.html')">
-            <i class="bi bi-arrow-left"></i> <span>Back to Home</span>
+            <i class="bi bi-arrow-left"></i> <span data-i18n="nav.back_to_home">Back to Home</span>
           </button>
-          <div class="d-lg-none" id="authLogoMobile"></div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm lf-theme-toggle-btn border" id="themeToggleBtn" onclick="lfToggleTheme()" title="Toggle theme">
+              <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+            </button>
+            <div class="d-lg-none" id="authLogoMobile"></div>
+          </div>
         </div>
 
         <!-- Role picker -->
         <div id="rolePicker">
-          <h4 class="mb-1">Welcome to LocalFix</h4>
-          <p class="text-muted small mb-4">Select your account type to proceed.</p>
+          <div class="lf-anim-item lf-anim-delay-1">
+            <h4 class="mb-1 fw-bold" id="authFormTitle" data-i18n="auth.login_cust_title">Customer Sign In</h4>
+            <p class="text-muted small mb-4" id="authFormDesc" data-i18n="auth.login_cust_desc">Access your home service bookings, track technician arrival, and view bills.</p>
+          </div>
           
-          <div class="row g-3 mb-4">
+          <div class="row g-3 mb-4 lf-anim-item lf-anim-delay-2">
             <div class="col-sm-6">
               <button type="button" class="lf-role-btn active" data-role="customer">
-                <i class="bi bi-person-fill text-primary d-block mb-2 fs-4"></i>
-                <div class="fw-semibold">👤 Customer Account</div>
-                <div class="small text-muted" style="font-size:0.75rem;">Book verified workers for home repairs</div>
+                <i class="bi bi-person-fill text-primary d-block mb-2 fs-3"></i>
+                <div class="fw-bold text-dark" data-i18n="auth.role_cust_title">I am a Customer</div>
+                <div class="small text-muted" style="font-size:0.75rem;" data-i18n="auth.role_cust_desc">Book repair services for my home</div>
               </button>
             </div>
             <div class="col-sm-6">
               <button type="button" class="lf-role-btn" data-role="worker">
-                <i class="bi bi-tools text-primary d-block mb-2 fs-4"></i>
-                <div class="fw-semibold">🛠️ Service Worker</div>
-                <div class="small text-muted" style="font-size:0.75rem;">Receive job requests from local customers</div>
+                <i class="bi bi-tools text-warning d-block mb-2 fs-3"></i>
+                <div class="fw-bold text-dark" data-i18n="auth.role_worker_title">I am a Worker</div>
+                <div class="small text-muted" style="font-size:0.75rem;" data-i18n="auth.role_worker_desc">Provide skilled repair services &amp; earn</div>
               </button>
             </div>
           </div>
 
           <!-- Tab Switcher -->
-          <div class="lf-tab-toggle d-flex gap-2 mb-4">
-            <button type="button" class="btn btn-lf-dark btn-sm px-4" id="tabLogin">Sign In</button>
-            <button type="button" class="btn btn-lf-outline btn-sm px-4" id="tabRegister">Create Account</button>
+          <div class="lf-tab-toggle d-flex gap-2 mb-4 lf-anim-item lf-anim-delay-3">
+            <button type="button" class="btn btn-lf-dark btn-sm px-4 fw-semibold" id="tabLogin" data-i18n="auth.tab_signin">Sign In</button>
+            <button type="button" class="btn btn-lf-outline btn-sm px-4 fw-semibold" id="tabRegister" data-i18n="auth.tab_register">Register / Sign Up</button>
           </div>
 
-          <!-- Demo Quick Switcher -->
-          <div class="mb-4 p-3 rounded-3" style="background:#F8FAFC; border:1px solid #E2E8F0;">
-            <div class="small fw-bold text-muted mb-2"><i class="bi bi-lightning-charge-fill text-warning me-1"></i> Quick Demo Accounts (One-Click):</div>
-            <div class="d-flex flex-wrap gap-2">
-              <span class="lf-demo-pill" onclick="loginAsDemo('neha@example.com')">👤 Customer (Neha)</span>
-              <span class="lf-demo-pill" onclick="loginAsDemo('rahul@localfix.com')">🛠️ Worker (Rahul)</span>
-              <span class="lf-demo-pill" onclick="loginAsDemo('admin@localfix.com')">🛡️ Admin</span>
-            </div>
-          </div>
 
           <!-- Login Form -->
           <form id="loginForm">
             <div class="mb-3">
-              <label class="form-label small fw-semibold">Email Address</label>
-              <input type="email" class="form-control" id="loginEmail" required placeholder="name@example.com">
+              <label class="form-label small fw-semibold" data-i18n="auth.lbl_email">Email Address</label>
+              <input type="email" class="form-control" id="loginEmail" required placeholder="name@example.com" data-i18n-placeholder="auth.ph_email">
             </div>
             <div class="mb-3">
-              <label class="form-label small fw-semibold">Password</label>
-              <input type="password" class="form-control" id="loginPassword" required placeholder="••••••••">
+              <label class="form-label small fw-semibold" data-i18n="auth.lbl_password">Password</label>
+              <input type="password" class="form-control" id="loginPassword" required placeholder="••••••••" data-i18n-placeholder="auth.ph_password">
             </div>
             <div id="loginError" class="alert alert-danger small py-2 d-none"></div>
-            <button type="submit" class="btn btn-lf-primary w-100 py-2">Sign In</button>
+            <button type="submit" class="btn btn-lf-primary w-100 py-2 fw-semibold" id="loginSubmitBtn" data-i18n="auth.tab_signin">Sign In</button>
           </form>
 
           <!-- Customer Register Form -->
           <form id="customerRegisterForm" class="d-none">
             <div class="row g-3">
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Full Name</label>
-                <input type="text" class="form-control" id="custName" required placeholder="e.g. Parvesh Mehta">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_fullname">Full Name</label>
+                <input type="text" class="form-control" id="custName" required placeholder="e.g. Parvesh Mehta" data-i18n-placeholder="auth.ph_name">
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Phone Number</label>
-                <input type="tel" class="form-control" id="custPhone" required placeholder="9876543210">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_phone">Phone Number</label>
+                <input type="tel" class="form-control" id="custPhone" required placeholder="9876543210" data-i18n-placeholder="auth.ph_phone">
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Email Address</label>
-                <input type="email" class="form-control" id="custEmail" required placeholder="parvesh@example.com">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_email">Email Address</label>
+                <input type="email" class="form-control" id="custEmail" required placeholder="parvesh@example.com" data-i18n-placeholder="auth.ph_email">
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Password</label>
-                <input type="password" class="form-control" id="custPassword" required minlength="4" placeholder="••••••••">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_password">Password</label>
+                <input type="password" class="form-control" id="custPassword" required minlength="4" placeholder="••••••••" data-i18n-placeholder="auth.ph_password">
               </div>
-              <div class="col-12">
-                <label class="form-label small fw-semibold">Location / Area</label>
-                <input type="text" class="form-control" id="custLocation" placeholder="e.g. Model Town, Ludhiana">
+              <div class="col-sm-6">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_state">State</label>
+                <select class="form-select" id="custState">
+                  <option value="Punjab" selected>Punjab</option>
+                  <option value="Haryana">Haryana</option>
+                  <option value="Delhi">Delhi</option>
+                  <option value="Himachal Pradesh">Himachal Pradesh</option>
+                  <option value="Uttar Pradesh">Uttar Pradesh</option>
+                  <option value="Rajasthan">Rajasthan</option>
+                  <option value="Maharashtra">Maharashtra</option>
+                  <option value="Gujarat">Gujarat</option>
+                  <option value="Karnataka">Karnataka</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_city_area">City / Area</label>
+                <input type="text" class="form-control" id="custLocation" placeholder="e.g. Model Town, Ludhiana" data-i18n-placeholder="auth.ph_area">
               </div>
             </div>
-            <button type="submit" class="btn btn-lf-primary w-100 mt-4 py-2">Create Customer Account</button>
+            <button type="submit" class="btn btn-lf-primary w-100 mt-4 py-2 fw-semibold" data-i18n="auth.btn_create_cust">Create Customer Account</button>
           </form>
 
           <!-- Worker Register Form -->
           <form id="workerRegisterForm" class="d-none">
             <div class="row g-3">
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Full Name</label>
-                <input type="text" class="form-control" id="workerNameInput" required placeholder="e.g. Gurpreet Singh">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_fullname">Full Name</label>
+                <input type="text" class="form-control" id="workerNameInput" required placeholder="e.g. Gurpreet Singh" data-i18n-placeholder="auth.ph_name">
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Phone Number</label>
-                <input type="tel" class="form-control" id="workerPhone" required placeholder="9876543210">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_phone">Phone Number</label>
+                <input type="tel" class="form-control" id="workerPhone" required placeholder="9876543210" data-i18n-placeholder="auth.ph_phone">
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Email Address</label>
-                <input type="email" class="form-control" id="workerEmail" required placeholder="gurpreet@localfix.com">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_email">Email Address</label>
+                <input type="email" class="form-control" id="workerEmail" required placeholder="gurpreet@localfix.com" data-i18n-placeholder="auth.ph_email">
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Password</label>
-                <input type="password" class="form-control" id="workerPassword" required minlength="4" placeholder="••••••••">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_password">Password</label>
+                <input type="password" class="form-control" id="workerPassword" required minlength="4" placeholder="••••••••" data-i18n-placeholder="auth.ph_password">
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Service Category</label>
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_service_trade">Service Category</label>
                 <select class="form-select" id="workerCategory" required>
                   <option value="electrician">Electrician</option>
                   <option value="plumber">Plumber</option>
@@ -168,26 +454,40 @@
                 </select>
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Experience (years)</label>
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_experience">Experience (years)</label>
                 <input type="number" min="1" max="40" class="form-control" id="workerExp" value="5" required>
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Key Skills</label>
-                <input type="text" class="form-control" id="workerSkills" placeholder="Wiring, Fan, Inverter">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_state">State</label>
+                <select class="form-select" id="workerState" required>
+                  <option value="Punjab" selected>Punjab</option>
+                  <option value="Haryana">Haryana</option>
+                  <option value="Delhi">Delhi</option>
+                  <option value="Himachal Pradesh">Himachal Pradesh</option>
+                  <option value="Uttar Pradesh">Uttar Pradesh</option>
+                  <option value="Rajasthan">Rajasthan</option>
+                  <option value="Maharashtra">Maharashtra</option>
+                  <option value="Gujarat">Gujarat</option>
+                  <option value="Karnataka">Karnataka</option>
+                </select>
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Service Area</label>
-                <input type="text" class="form-control" id="workerArea" required placeholder="e.g. Model Town, Ludhiana">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_city_area">City &amp; Service Area</label>
+                <input type="text" class="form-control" id="workerArea" required placeholder="e.g. Model Town, Ludhiana" data-i18n-placeholder="auth.ph_area">
               </div>
               <div class="col-sm-6">
-                <label class="form-label small fw-semibold">Visiting Price (₹)</label>
-                <input type="number" min="50" step="50" class="form-control" id="workerPrice" value="250" required>
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_price">Visiting Price (₹)</label>
+                <input type="number" min="50" step="50" class="form-control" id="workerPrice" value="250" required placeholder="250" data-i18n-placeholder="auth.ph_price">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label small fw-semibold" data-i18n="auth.lbl_skills">Key Skills</label>
+                <input type="text" class="form-control" id="workerSkills" placeholder="Wiring, Fan, Inverter" data-i18n-placeholder="auth.ph_skills">
               </div>
             </div>
             <div class="alert alert-warning small mt-3 mb-0">
-              <i class="bi bi-info-circle-fill me-1"></i> New worker profiles will be marked as <strong>Pending Verification</strong> until reviewed by Admin.
+              <i class="bi bi-info-circle-fill me-1"></i> New worker profiles are registered state-wise and will appear under searches for your state &amp; area.
             </div>
-            <button type="submit" class="btn btn-lf-primary w-100 mt-3 py-2">Submit Worker Application</button>
+            <button type="submit" class="btn btn-lf-primary w-100 mt-3 py-2 fw-semibold" data-i18n="auth.btn_register_worker">Submit Worker Application</button>
           </form>
         </div>
       </div>
@@ -196,7 +496,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/storage.js"></script>
+<script src="../js/storage.js?v=lf_v13"></script>
 <script src="../js/sampleData.js"></script>
 <script src="../js/auth.js"></script>
 <script>

@@ -42,13 +42,24 @@ Object.defineProperty(window, 'LF_COMPLAINTS', {
   configurable: true,
 });
 
+function lfGetServiceName(categoryId) {
+  if (!categoryId) return '';
+  if (window.i18n) {
+    const key = 'service.' + categoryId;
+    const trans = window.i18n.t(key);
+    if (trans && trans !== key) return trans;
+  }
+  return LF_SERVICE_LABELS[categoryId] || categoryId;
+}
+
 /**
  * Render crisp star icons for any numeric rating (1 to 5)
  * If rating is null or 0, shows "No ratings yet"
  */
 function lfRenderStars(rating, showNumber = false) {
+  const noRatingsText = window.i18n ? window.i18n.t('stars.no_ratings', 'No ratings yet') : 'No ratings yet';
   if (rating === null || rating === undefined || (Number(rating) === 0 && !showNumber)) {
-    return '<span class="text-muted small fst-italic">No ratings yet</span>';
+    return `<span class="text-muted small fst-italic">${noRatingsText}</span>`;
   }
   const num = Math.min(Math.max(Number(rating) || 0, 0), 5);
   let starsHtml = '';
@@ -73,9 +84,14 @@ function lfRenderStars(rating, showNumber = false) {
  */
 function lfGreeting(name) {
   const h = new Date().getHours();
-  const time = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  let timeStr = 'Good morning';
+  if (window.i18n) {
+    timeStr = h < 12 ? window.i18n.t('greeting.morning', 'Good morning') : h < 17 ? window.i18n.t('greeting.afternoon', 'Good afternoon') : window.i18n.t('greeting.evening', 'Good evening');
+  } else {
+    timeStr = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  }
   const firstName = (name || 'there').split(' ')[0];
-  return `${time}, ${firstName} &#128075;`;
+  return `${timeStr}, ${firstName} &#128075;`;
 }
 
 /**
@@ -83,8 +99,9 @@ function lfGreeting(name) {
  */
 function lfDistanceBadge(worker) {
   const km = Number(worker.distanceKm) || 0;
+  const surchargeNote = window.i18n ? window.i18n.t('worker.travel_charge_applies', '+₹100 travel charge applies') : '+₹100 travel charge applies';
   if (km > 10) {
-    return `<span class="badge bg-warning text-dark ms-1" title="+&#8377;100 travel charge applies"><i class="bi bi-exclamation-triangle-fill me-1"></i>${km} km &middot; +&#8377;100</span>`;
+    return `<span class="badge bg-warning text-dark ms-1" title="${surchargeNote}"><i class="bi bi-exclamation-triangle-fill me-1"></i>${km} km &middot; +&#8377;100</span>`;
   }
   return `<span class="badge bg-light text-muted border">${km} km</span>`;
 }
@@ -95,16 +112,17 @@ function lfDistanceBadge(worker) {
  */
 function lfBookingTracker(status) {
   const steps = [
-    { key: 'requested',   label: 'Requested',   icon: 'bi-send-fill' },
-    { key: 'accepted',    label: 'Accepted',     icon: 'bi-person-check-fill' },
-    { key: 'in_progress', label: 'In Progress',  icon: 'bi-tools' },
-    { key: 'completed',   label: 'Completed',    icon: 'bi-check-circle-fill' },
+    { key: 'requested',   label: window.i18n ? window.i18n.t('booking.status_requested', 'Requested') : 'Requested', icon: 'bi-send-fill' },
+    { key: 'accepted',    label: window.i18n ? window.i18n.t('booking.status_accepted', 'Accepted') : 'Accepted', icon: 'bi-person-check-fill' },
+    { key: 'in_progress', label: window.i18n ? window.i18n.t('booking.status_in_progress', 'In Progress') : 'In Progress', icon: 'bi-tools' },
+    { key: 'completed',   label: window.i18n ? window.i18n.t('booking.status_completed', 'Completed') : 'Completed', icon: 'bi-check-circle-fill' },
   ];
   const ORDER = { requested: 0, accepted: 1, in_progress: 2, completed: 3, cancelled: -1 };
   const currentOrder = ORDER[status] ?? 0;
 
   if (status === 'cancelled') {
-    return `<div class="text-danger small fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Booking Cancelled</div>`;
+    const cancelledLabel = window.i18n ? window.i18n.t('booking.status_cancelled', 'Booking Cancelled') : 'Booking Cancelled';
+    return `<div class="text-danger small fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>${cancelledLabel}</div>`;
   }
 
   return `
@@ -131,7 +149,8 @@ function lfBookingTracker(status) {
 function lfStatusBadge(status) {
   const cleanStatus = (status || 'requested').toLowerCase();
   const label = cleanStatus.replace('_', ' ');
-  return `<span class="lf-status lf-status-${cleanStatus}">${label}</span>`;
+  const transLabel = window.i18n ? window.i18n.t('booking.status_' + cleanStatus, label) : label;
+  return `<span class="lf-status lf-status-${cleanStatus}">${transLabel}</span>`;
 }
 
 /**
@@ -160,12 +179,35 @@ function lfEmptyState(icon = 'bi-inbox', title = 'No data available', subtitle =
 }
 
 /**
+ * Double-Tick Completion Badge (WhatsApp-style)
+ * Shows two ticks: one from worker, one from customer.
+ * Both must be green for the job to be fully confirmed.
+ */
+function lfDoubleTick(booking) {
+  const workerDone   = !!(booking.markedDoneByWorker || booking.status === 'completed');
+  const customerDone = !!booking.confirmedByCustomer;
+  const workerCls    = workerDone   ? 'lf-tick lf-tick-done'    : 'lf-tick lf-tick-pending';
+  const customerCls  = customerDone ? 'lf-tick lf-tick-done'    : 'lf-tick lf-tick-pending';
+  const bothDone     = workerDone && customerDone;
+  const wLabel = window.i18n ? window.i18n.t('worker.tick_worker', 'Worker') : 'Worker';
+  const cLabel = window.i18n ? window.i18n.t('worker.tick_customer', 'Customer') : 'Customer';
+  const vLabel = window.i18n ? window.i18n.t('worker.tick_verified', 'Verified') : 'Verified';
+  return `
+    <div class="lf-double-tick ${bothDone ? 'lf-double-tick-complete' : ''}" title="Job completion status">
+      <span class="${workerCls}"><i class="bi bi-check-lg"></i><span class="lf-tick-label">${wLabel}</span></span>
+      <span class="${customerCls}"><i class="bi bi-check-lg"></i><span class="lf-tick-label">${cLabel}</span></span>
+      ${bothDone ? `<span class="lf-tick-verified ms-1"><i class="bi bi-patch-check-fill"></i> ${vLabel}</span>` : ''}
+    </div>`;
+}
+
+/**
  * Universal Brand Signature Logo Component
  * Combined Symbol + Typography + Verification Tag
  */
 function lfBrandLogo(isDark = false, isSmall = false) {
   const textColor = isDark ? '#FFFFFF' : '#0B1120';
   const sizeClass = isSmall ? 'lf-logo-sm' : 'lf-logo-md';
+  const tagline = window.i18n ? window.i18n.t('brand.tagline', 'Verified Services') : 'Verified Services';
 
   return `
     <div class="lf-brand-signature ${sizeClass} d-inline-flex align-items-center gap-2 text-decoration-none">
@@ -188,7 +230,7 @@ function lfBrandLogo(isDark = false, isSmall = false) {
           Local<span style="color:var(--lf-primary); font-weight:800;">Fix</span>
         </div>
         <span class="lf-brand-tagline" style="font-size:0.58rem; letter-spacing:0.08em; text-transform:uppercase; font-weight:700; color:${isDark ? '#94A3B8' : '#64748B'}; line-height:1.2; margin-top:2px;">
-          Verified Services
+          ${tagline}
         </span>
       </div>
     </div>
@@ -198,10 +240,11 @@ function lfBrandLogo(isDark = false, isSmall = false) {
 /**
  * Universal In-Built Back Button Helper
  */
-function lfBackButton(fallbackHref = '../index.html', label = 'Back') {
+function lfBackButton(fallbackHref = '../index.html', label) {
+  const lbl = label || (window.i18n ? window.i18n.t('btn.back', 'Back') : 'Back');
   return `
     <button type="button" class="btn-lf-back" onclick="lfGoBack('${fallbackHref}')">
-      <i class="bi bi-arrow-left"></i> <span>${label}</span>
+      <i class="bi bi-arrow-left"></i> <span>${lbl}</span>
     </button>
   `;
 }
@@ -251,3 +294,39 @@ function lfShowToast(message, type = 'success') {
   toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
 }
 
+/**
+ * Universal Global Theme Engine (Light & Dark Mode)
+ * Available on EVERY page where sampleData.js is loaded.
+ */
+function lfToggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  const next = current === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem("lf_theme", next); } catch (e) {}
+  lfUpdateAllThemeButtons(next);
+}
+
+// Global aliases for compatibility
+window.toggleTheme = lfToggleTheme;
+window.lfToggleTheme = lfToggleTheme;
+
+function lfUpdateAllThemeButtons(theme) {
+  const t = theme || (function() { try { return localStorage.getItem("lf_theme") || "dark"; } catch(e) { return "dark"; } })();
+  document.querySelectorAll("#themeIcon, .lf-theme-icon").forEach((icon) => {
+    if (t === "dark") {
+      icon.className = "bi bi-sun-fill lf-sun-icon";
+    } else {
+      icon.className = "bi bi-moon-stars-fill lf-moon-icon";
+    }
+  });
+  document.querySelectorAll("#themeToggleBtn, .lf-theme-toggle-btn").forEach((btn) => {
+    btn.setAttribute("title", t === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode");
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  let saved = "dark";
+  try { saved = localStorage.getItem("lf_theme") || "dark"; } catch (e) {}
+  document.documentElement.setAttribute("data-theme", saved);
+  lfUpdateAllThemeButtons(saved);
+});

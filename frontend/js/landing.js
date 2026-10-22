@@ -97,34 +97,28 @@ function renderTestimonials() {
   const el = document.getElementById('testimonials');
   if (!el) return;
 
-  const reviews = [
-    {
-      name: 'Neha Gupta',
-      location: 'Model Town, Ludhiana',
-      rating: 5,
-      text: 'Booked an electrician in under 2 minutes and he arrived with testing tools within the hour. Super fast and hassle-free!',
-    },
-    {
-      name: 'Rohit Malhotra',
-      location: 'Sarabha Nagar, Ludhiana',
-      rating: 5,
-      text: 'The verified badge is real! The plumber who came was polite, fixed the pipe joint cleanly, and charged exactly what was shown.',
-    },
-    {
-      name: 'Simran Kaur',
-      location: 'Civil Lines, Ludhiana',
-      rating: 5,
-      text: 'AC servicing was top notch. The jet-pump cleaning made cooling freezing cold again. Great platform!',
-    },
-  ];
+  // Pull only genuine reviews from Storage (submitted by real authenticated users)
+  const reviews = window.Storage ? window.Storage.getAllReviews() : [];
 
-  el.innerHTML = reviews.map((t) => `
+  if (!reviews || reviews.length === 0) {
+    el.innerHTML = `
+      <div class="col-12 text-center py-5 text-muted">
+        <i class="bi bi-star fs-1 opacity-25 d-block mb-3"></i>
+        <div class="fw-semibold mb-1">No reviews yet</div>
+        <div class="small">Be the first to book a service and share your experience!</div>
+        <a href="pages/auth.html?mode=register" class="btn btn-lf-outline btn-sm mt-3">Get Started</a>
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = reviews.slice(0, 3).map((t) => `
     <div class="col-md-4">
       <div class="lf-testimonial lf-reveal">
         <div class="mb-2">${lfRenderStars(t.rating)}</div>
-        <p class="mb-3 text-muted small lh-base">&ldquo;${t.text}&rdquo;</p>
-        <div class="fw-bold text-dark">${t.name}</div>
-        <div class="small text-muted" style="font-size:0.75rem;"><i class="bi bi-geo-alt text-primary me-1"></i>${t.location}</div>
+        <p class="mb-3 text-muted small lh-base">&ldquo;${t.comment}&rdquo;</p>
+        <div class="fw-bold text-dark">${t.customerName || 'Verified Customer'}</div>
+        <div class="small text-muted" style="font-size:0.75rem;"><i class="bi bi-geo-alt text-primary me-1"></i>${t.location || 'India'}</div>
       </div>
     </div>
   `).join('');
@@ -194,21 +188,104 @@ function initScrollReveal() {
   setTimeout(() => document.querySelectorAll('.lf-reveal').forEach((el) => observer.observe(el)), 60);
 }
 
-// Stat counters
+// Stat counters (Dynamic from real data)
 function initStatCounters() {
-  const counters = document.querySelectorAll('[data-count]');
+  const elWorkers = document.getElementById("statRegisteredWorkers");
+  const elCustomers = document.getElementById("statRegisteredCustomers");
+  const elRepairs = document.getElementById("statRepairsCompleted");
+  const elAreas = document.getElementById("statAreasCovered");
+  const elCSAT = document.getElementById("statCustomerSatisfaction");
+
+  const statElements = [elWorkers, elCustomers, elRepairs, elAreas, elCSAT].filter(Boolean);
+  if (!statElements.length) return;
+
+  let stats;
+  try {
+    if (!window.Storage || typeof window.Storage.getPlatformStatistics !== "function") {
+      throw new Error("Storage unavailable");
+    }
+    stats = window.Storage.getPlatformStatistics();
+    if (!stats || stats.success === false) throw new Error("Statistics error");
+  } catch (err) {
+    statElements.forEach((el) => {
+      el.className = "lf-stat-big lf-stat-fallback";
+      delete el.dataset.count;
+      el.textContent = "Currently unavailable";
+    });
+    return;
+  }
+
+  function setTile(el, val, fallback) {
+    if (!el) return;
+    if (typeof val === "number" && val > 0) {
+      el.className = "lf-stat-big";
+      el.dataset.count = val;
+      el.dataset.suffix = "";
+      el.textContent = val.toLocaleString();
+    } else {
+      el.className = "lf-stat-big lf-stat-fallback";
+      delete el.dataset.count;
+      el.textContent = fallback;
+    }
+  }
+
+  setTile(elWorkers, stats.registeredWorkers, "No registered workers yet");
+  setTile(elCustomers, stats.registeredCustomers, "No registered customers yet");
+
+  if (elRepairs) {
+    if (stats.repairsCompleted > 0) {
+      elRepairs.className = "lf-stat-big";
+      elRepairs.dataset.count = stats.repairsCompleted;
+      elRepairs.dataset.suffix = "";
+      elRepairs.textContent = "0";
+    } else {
+      elRepairs.className = "lf-stat-big lf-stat-fallback";
+      delete elRepairs.dataset.count;
+      elRepairs.textContent = "No completed repairs yet";
+    }
+  }
+
+  if (elAreas) {
+    if (stats.areasCovered > 0) {
+      elAreas.className = "lf-stat-big";
+      elAreas.dataset.count = stats.areasCovered;
+      elAreas.dataset.suffix = "";
+      elAreas.textContent = "0";
+    } else {
+      elAreas.className = "lf-stat-big lf-stat-fallback";
+      delete elAreas.dataset.count;
+      elAreas.textContent = "Areas coming soon";
+    }
+  }
+
+  if (elCSAT) {
+    if (stats.customerSatisfaction !== null && !isNaN(stats.customerSatisfaction)) {
+      elCSAT.className = "lf-stat-big";
+      elCSAT.dataset.count = stats.customerSatisfaction;
+      elCSAT.dataset.suffix = "%";
+      elCSAT.innerHTML = '0<span>%</span>';
+    } else {
+      elCSAT.className = "lf-stat-big lf-stat-fallback";
+      delete elCSAT.dataset.count;
+      elCSAT.textContent = "Not rated yet";
+    }
+  }
+
+  const counters = document.querySelectorAll('.lf-stat-big[data-count]');
   if (!counters.length) return;
 
   const animate = (el) => {
     const target = Number(el.dataset.count);
+    const suffix = el.dataset.suffix || "";
     const duration = 1200;
     const start = performance.now();
 
     const step = (now) => {
       const progress = Math.min((now - start) / duration, 1);
-      el.textContent = Math.floor(progress * target).toLocaleString();
+      const val = Math.floor(progress * target);
+      el.innerHTML = val.toLocaleString() + (suffix ? `<span>${suffix}</span>` : "");
       if (progress < 1) requestAnimationFrame(step);
-      else el.textContent = target.toLocaleString();
+      else el.innerHTML = target.toLocaleString() + (suffix ? `<span>${suffix}</span>` : "");
     };
     requestAnimationFrame(step);
   };
@@ -220,7 +297,7 @@ function initStatCounters() {
         observer.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.5 });
+  }, { threshold: 0.35 });
 
   counters.forEach((el) => observer.observe(el));
 }

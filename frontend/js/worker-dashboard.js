@@ -9,12 +9,11 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   const user = window.Storage.getCurrentUser();
-  if (user && user.role === "customer") { window.location.href = "customer-dashboard.html"; return; }
-  if (user && user.role === "admin")    { window.location.href = "admin-dashboard.html"; return; }
+  if (!user) { window.location.href = "auth.html"; return; }
+  if (user.role === "customer") { window.location.href = "customer-dashboard.html"; return; }
+  if (user.role === "admin")    { window.location.href = "admin-dashboard.html"; return; }
 
-  const currentWorkerUser = user || {
-    id: "u_worker_1", name: "Rahul Sharma", email: "rahul@localfix.com", role: "worker", workerId: "w1", category: "electrician", location: "Model Town, Ludhiana",
-  };
+  const currentWorkerUser = user;
 
   const workerProfile = window.Storage.getWorkerById(currentWorkerUser.workerId || "w1") || {
     id: "w1", name: currentWorkerUser.name, category: "electrician", experience: 6, rating: null, reviewsCount: 0, price: 250, area: "Model Town, Ludhiana", available: true, jobs: 0,
@@ -26,11 +25,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const nameEl  = document.getElementById("userName");
   if (nameEl) nameEl.textContent = currentWorkerUser.name;
   const verLine = document.getElementById("verificationLine");
-  if (verLine) verLine.textContent = `${LF_SERVICE_LABELS[workerProfile.category] || workerProfile.category} · ${workerProfile.area}`;
+  if (verLine) verLine.textContent = `${lfGetServiceName(workerProfile.category)} · ${workerProfile.area}`;
 
   initWorkerTabs();
   initAvailabilitySwitch(workerProfile);
   refreshWorkerDashboard(currentWorkerUser, workerProfile);
+
+  window.addEventListener("lf:lang-changed", () => {
+    if (greetEl) greetEl.innerHTML = lfGreeting(currentWorkerUser.name);
+    if (verLine) verLine.textContent = `${lfGetServiceName(workerProfile.category)} · ${workerProfile.area}`;
+    const sw = document.getElementById("availabilitySwitch");
+    const lbl = document.getElementById("availabilityLabel");
+    if (lbl && sw) {
+      lbl.textContent = sw.checked
+        ? (window.i18n ? window.i18n.t("dash.online_accepting", "Online (Accepting Jobs)") : "Online (Accepting Jobs)")
+        : (window.i18n ? window.i18n.t("dash.offline_busy", "Offline (Busy)") : "Offline (Busy)");
+    }
+    refreshWorkerDashboard(currentWorkerUser, workerProfile);
+  });
 });
 
 function refreshWorkerDashboard(user, profile) {
@@ -67,12 +79,14 @@ function initAvailabilitySwitch(profile) {
   const lbl = document.getElementById("availabilityLabel");
   if (!sw) return;
 
+  const t = (k, fb) => (window.i18n ? window.i18n.t(k, fb) : fb);
+
   sw.checked = profile.available !== false;
-  if (lbl) lbl.textContent = sw.checked ? "Online (Accepting Jobs)" : "Offline (Busy)";
+  if (lbl) lbl.textContent = sw.checked ? t("dash.online_accepting", "Online (Accepting Jobs)") : t("dash.offline_busy", "Offline (Busy)");
 
   sw.addEventListener("change", () => {
     window.Storage.updateWorkerAvailability(profile.id, sw.checked);
-    if (lbl) lbl.textContent = sw.checked ? "Online (Accepting Jobs)" : "Offline (Busy)";
+    if (lbl) lbl.textContent = sw.checked ? t("dash.online_accepting", "Online (Accepting Jobs)") : t("dash.offline_busy", "Offline (Busy)");
     lfShowToast(sw.checked ? "You are now online and visible to customers." : "You are marked offline.", sw.checked ? "success" : "info");
   });
 }
@@ -203,10 +217,11 @@ function renderUpcomingJobs(jobs) {
       <div class="small text-muted mb-2"><i class="bi bi-geo-alt me-1 text-danger"></i>${j.customerAddress || "Ludhiana"}</div>
       <div class="small text-muted mb-3"><i class="bi bi-calendar3 me-1"></i>${j.date} &middot; ${j.slot}</div>
       ${lfBookingTracker(j.status)}
+      ${j.markedDoneByWorker ? `<div class="mt-2">${lfDoubleTick(j)}<span class="ms-2 small text-muted fst-italic" style="font-size:0.72rem;">Waiting for customer to confirm</span></div>` : ''}
       <div class="d-flex gap-2 mt-3">
-        <button class="btn btn-primary btn-sm px-3" onclick="workerMarkDone('${j.id}')">
+        ${!j.markedDoneByWorker ? `<button class="btn btn-primary btn-sm px-3" onclick="workerMarkDone('${j.id}')">
           <i class="bi bi-check2-circle me-1"></i> Mark Job Complete
-        </button>
+        </button>` : `<span class="badge bg-success py-2 px-3"><i class="bi bi-check-all me-1"></i> Marked Done — Awaiting Customer</span>`}
       </div>
     </div>
   `).join("");
@@ -246,8 +261,11 @@ function renderCompletedJobs(jobs) {
         <div class="lf-mono fw-bold text-success">₹${j.totalPrice || j.price}</div>
       </div>
       <div class="small text-muted mb-1"><i class="bi bi-person me-1"></i>${j.customerName} &middot; ${j.date}</div>
-      <div class="small text-muted">${j.customerAddress || "Ludhiana"}</div>
-      ${j.rating ? `<div class="mt-2 small text-warning"><i class="bi bi-star-fill me-1"></i>Customer rated: <strong>${j.rating}★</strong> &ldquo;${j.reviewComment || ""}&rdquo;</div>` : `<div class="mt-2 small text-muted fst-italic">Waiting for customer rating</div>`}
+      <div class="small text-muted mb-2">${j.customerAddress || "Ludhiana"}</div>
+      ${lfDoubleTick(j)}
+      ${j.rating
+        ? `<div class="mt-2 small text-warning"><i class="bi bi-star-fill me-1"></i>Customer rated: <strong>${j.rating}★</strong> &ldquo;${j.reviewComment || ""}&rdquo;</div>`
+        : `<div class="mt-2 small text-muted fst-italic">${j.confirmedByCustomer ? 'Waiting for customer rating' : '⏳ Customer confirmation pending'}</div>`}
     </div>
   `).join("");
 }

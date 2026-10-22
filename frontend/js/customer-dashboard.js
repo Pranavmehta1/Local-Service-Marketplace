@@ -26,6 +26,11 @@ document.addEventListener("DOMContentLoaded", () => {
   initReviewModal(user);
   initComplaintModal(user);
   initProfileForm(user);
+
+  window.addEventListener("lf:lang-changed", () => {
+    if (greetEl) greetEl.innerHTML = lfGreeting(user.name);
+    refreshCustomerData(user);
+  });
 });
 
 function refreshCustomerData(user) {
@@ -223,8 +228,12 @@ function renderAllBookings(bookings) {
 
       ${lfBookingTracker(b.status)}
 
-      ${needsConfirm ? renderDisputeOrConfirm(b) : ""}
-      ${b.status === "completed" && b.confirmedByCustomer && !b.rating ? renderDisputeOrConfirm(b) : ""}
+      ${(b.markedDoneByWorker || b.status === 'completed')
+        ? `<div class="mt-2">${lfDoubleTick(b)}${b.markedDoneByWorker && !b.confirmedByCustomer ? '<span class="ms-2 badge bg-warning text-dark" style="font-size:0.7rem;">⏳ Needs your confirmation!</span>' : ''}</div>`
+        : ''}
+
+      ${needsConfirm ? renderDisputeOrConfirm(b) : ''}
+      ${b.status === "completed" && b.confirmedByCustomer && !b.rating ? renderDisputeOrConfirm(b) : ''}
 
       <div class="d-flex gap-2 flex-wrap mt-2">
         ${b.status === "completed" && !b.rating && b.confirmedByCustomer
@@ -307,7 +316,11 @@ window.openReviewModalForBooking = (bookingId, workerId, workerName) => {
   if (el) el.innerHTML = `<i class="bi bi-star-fill text-warning me-1"></i>Rate ${workerName}`;
   const nameInput = document.getElementById("reviewerName");
   const user = window.Storage.getCurrentUser();
-  if (nameInput && user) nameInput.value = user.name;
+  // Lock the name field to the authenticated user's name — not editable
+  if (nameInput) {
+    nameInput.value = user ? user.name : "";
+    nameInput.readOnly = true;
+  }
   const modal = new bootstrap.Modal(document.getElementById("reviewModal"));
   modal.show();
 };
@@ -349,11 +362,21 @@ function initReviewModal(user) {
       return;
     }
 
+    // Always re-derive identity from the live session, never from any form field
+    const sessionUser = window.Storage.getCurrentUser();
+    if (!sessionUser) {
+      alert("Your session has expired. Please sign in again to submit a review.");
+      window.location.href = "auth.html";
+      return;
+    }
+
     window.Storage.addReview({
       workerId: _reviewTarget.workerId,
+      workerName: _reviewTarget.workerName,
       bookingId: _reviewTarget.bookingId,
       rating: selectedRating,
       comment: commentEl.value.trim(),
+      // customerName is always pulled from session in Storage.addReview()
     });
     bootstrap.Modal.getInstance(document.getElementById("reviewModal"))?.hide();
     lfShowToast("Review submitted! Thank you.");
