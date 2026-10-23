@@ -4,13 +4,23 @@
  * Attaches the JWT (if the user is logged in) to every request and
  * throws an Error with the server's descriptive message on failure.
  *
- * Configurable via window.LOCALFIX_API_URL or localStorage.getItem('lf_api_url')
+ * Automatically detects same-origin /api when accessed via http://localhost:5000
  */
 const DEFAULT_API_URL = 'http://localhost:5000/api';
 
 const getApiBaseUrl = () => {
   try {
-    return window.LOCALFIX_API_URL || localStorage.getItem('lf_api_url') || DEFAULT_API_URL;
+    if (window.LOCALFIX_API_URL) return window.LOCALFIX_API_URL;
+    const stored = localStorage.getItem('lf_api_url');
+    if (stored) return stored;
+
+    if (typeof window !== 'undefined' && window.location) {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return `${window.location.origin}/api`;
+      }
+    }
+    return DEFAULT_API_URL;
   } catch {
     return DEFAULT_API_URL;
   }
@@ -39,8 +49,13 @@ const LocalFixAPI = (() => {
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch (networkErr) {
+      if (window.location && window.location.protocol === 'https:' && baseUrl.startsWith('http:')) {
+        throw new Error(
+          'Browser Mixed Content Block: HTTPS Vercel cannot reach your local HTTP backend. Open http://localhost:5000/pages/auth.html instead.'
+        );
+      }
       throw new Error(
-        `Cannot connect to LocalFix backend at ${baseUrl}. Ensure backend server is running (npm run dev in localfix/backend).`
+        `Cannot connect to LocalFix backend at ${baseUrl}. Ensure backend server is running (node server.js on port 5000).`
       );
     }
 

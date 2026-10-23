@@ -280,7 +280,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     updateOtpLabels();
     startExpiryCountdown(300);
-    startCooldownTimer(60);
 
     await dispatchSendOtp();
   };

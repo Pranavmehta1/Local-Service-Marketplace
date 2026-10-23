@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
@@ -20,6 +21,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// API health and endpoints
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'LocalFix API' }));
 
 app.use('/api/auth', authRoutes);
@@ -31,6 +33,26 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/otp', otpRoutes);
+
+// Serve frontend static files
+const frontendDir = path.resolve(__dirname, '../frontend');
+app.use(express.static(frontendDir));
+
+// Clean URL support for /pages/...
+app.get('/pages/:page', (req, res, next) => {
+  const filePath = path.join(frontendDir, 'pages', `${req.params.page}.html`);
+  if (fs.existsSync(filePath)) return res.sendFile(filePath);
+  next();
+});
+
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  const direct = path.join(frontendDir, req.path);
+  if (fs.existsSync(direct) && fs.statSync(direct).isFile()) return res.sendFile(direct);
+  const withHtml = path.join(frontendDir, `${req.path}.html`);
+  if (fs.existsSync(withHtml)) return res.sendFile(withHtml);
+  res.sendFile(path.join(frontendDir, 'index.html'));
+});
 
 app.use(notFound);
 app.use(errorHandler);
