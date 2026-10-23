@@ -23,17 +23,43 @@ const sanitize = (user) => ({
 // POST /api/auth/register/customer
 const registerCustomer = async (req, res, next) => {
   try {
-    const { name, email, phone, password, location } = req.body;
+    const name = (req.body.name || '').trim();
+    const email = (req.body.email || '').trim().toLowerCase();
+    const phone = (req.body.phone || '').trim();
+    const password = req.body.password;
+    const location = (req.body.location || req.body.area || req.body.city || 'Model Town, Ludhiana').trim();
+
     if (!name || !email || !phone || !password) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(409).json({ message: 'Email already registered' });
+    let existing = await User.findOne({ email });
+    if (existing && existing.isVerified) {
+      return res.status(409).json({ message: 'Email already registered. Please sign in.' });
+    }
 
-    // role is hardcoded here, never taken from req.body — that's what stops
-    // someone from POSTing { role: "admin" } to make themselves an admin.
-    const user = await User.create({ name, email, phone, password, location, role: 'customer' });
+    let user;
+    if (existing) {
+      existing.name = name;
+      existing.phone = phone;
+      existing.password = password;
+      existing.location = location;
+      existing.role = 'customer';
+      existing.isVerified = true;
+      existing.isEmailVerified = true;
+      user = await existing.save();
+    } else {
+      user = await User.create({
+        name,
+        email,
+        phone,
+        password,
+        location,
+        role: 'customer',
+        isVerified: true,
+        isEmailVerified: true,
+      });
+    }
 
     res.status(201).json({ token: signToken(user), user: sanitize(user) });
   } catch (err) {
@@ -44,30 +70,77 @@ const registerCustomer = async (req, res, next) => {
 // POST /api/auth/register/worker
 const registerWorker = async (req, res, next) => {
   try {
-    const {
-      name, email, phone, password, location,
-      serviceCategory, experience, skills, serviceArea, startingPrice, workingHours,
-    } = req.body;
+    const name = (req.body.name || '').trim();
+    const email = (req.body.email || '').trim().toLowerCase();
+    const phone = (req.body.phone || '').trim();
+    const password = req.body.password;
+    const location = (req.body.location || req.body.area || req.body.serviceArea || 'Model Town, Ludhiana').trim();
+    const serviceArea = (req.body.serviceArea || req.body.area || req.body.location || 'Model Town, Ludhiana').trim();
+    const serviceCategory = req.body.serviceCategory || req.body.category || 'electrician';
+    const experience = Number(req.body.experience) || 1;
+    const startingPrice = req.body.startingPrice != null
+      ? Number(req.body.startingPrice)
+      : (req.body.price != null ? Number(req.body.price) : 200);
+    const skills = req.body.skills || '';
+    const workingHours = req.body.workingHours;
 
-    if (!name || !email || !phone || !password || !serviceCategory || !serviceArea || startingPrice == null) {
+    if (!name || !email || !phone || !password) {
       return res.status(400).json({ message: 'Missing required worker fields' });
     }
 
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(409).json({ message: 'Email already registered' });
+    let existing = await User.findOne({ email });
+    if (existing && existing.isVerified) {
+      return res.status(409).json({ message: 'Email already registered. Please sign in.' });
+    }
 
-    const user = await User.create({ name, email, phone, password, location, role: 'worker' });
+    let user;
+    if (existing) {
+      existing.name = name;
+      existing.phone = phone;
+      existing.password = password;
+      existing.location = location;
+      existing.role = 'worker';
+      existing.isVerified = true;
+      existing.isEmailVerified = true;
+      user = await existing.save();
+    } else {
+      user = await User.create({
+        name,
+        email,
+        phone,
+        password,
+        location,
+        role: 'worker',
+        isVerified: true,
+        isEmailVerified: true,
+      });
+    }
 
-    const worker = await Worker.create({
-      userId: user._id,
-      serviceCategory,
-      experience: Number(experience) || 0,
-      skills: Array.isArray(skills) ? skills : String(skills || '').split(',').map((s) => s.trim()).filter(Boolean),
-      serviceArea,
-      pricing: { startingPrice: Number(startingPrice) },
-      workingHours: workingHours || undefined,
-      verificationStatus: 'pending', // admin must approve before worker is publicly visible
-    });
+    let worker = await Worker.findOne({ userId: user._id });
+    const parsedSkills = Array.isArray(skills)
+      ? skills
+      : String(skills || '').split(',').map((s) => s.trim()).filter(Boolean);
+
+    if (worker) {
+      worker.serviceCategory = serviceCategory;
+      worker.experience = experience;
+      worker.skills = parsedSkills;
+      worker.serviceArea = serviceArea;
+      worker.pricing = { startingPrice };
+      if (workingHours) worker.workingHours = workingHours;
+      await worker.save();
+    } else {
+      worker = await Worker.create({
+        userId: user._id,
+        serviceCategory,
+        experience,
+        skills: parsedSkills,
+        serviceArea,
+        pricing: { startingPrice },
+        workingHours: workingHours || undefined,
+        verificationStatus: 'pending',
+      });
+    }
 
     res.status(201).json({
       token: signToken(user),
@@ -83,7 +156,10 @@ const registerWorker = async (req, res, next) => {
 // POST /api/auth/login
 const login = async (req, res, next) => {
   try {
-    const { email, password, otp } = req.body;
+    const email = (req.body.email || '').trim().toLowerCase();
+    const password = req.body.password;
+    const otp = req.body.otp;
+
     if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
 
     const user = await User.findOne({ email }).select('+password');
@@ -92,7 +168,6 @@ const login = async (req, res, next) => {
     }
     if (user.isSuspended) return res.status(403).json({ message: 'This account has been suspended' });
 
-    // If OTP verification is enforced and no valid OTP was passed in the same payload
     const requireOtp = process.env.REQUIRE_OTP_LOGIN !== 'false';
     if (requireOtp && !otp) {
       return res.json({
@@ -113,4 +188,11 @@ const getMe = async (req, res) => {
   res.json({ user: sanitize(req.user) });
 };
 
-module.exports = { registerCustomer, registerWorker, login, getMe };
+module.exports = {
+  registerCustomer,
+  registerWorker,
+  login,
+  getMe,
+  signToken,
+  sanitize,
+};

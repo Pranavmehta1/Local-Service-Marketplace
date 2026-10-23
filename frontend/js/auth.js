@@ -400,6 +400,7 @@ document.addEventListener("DOMContentLoaded", () => {
         otp: enteredCode,
         purpose: otpState.purpose,
         type: otpState.type,
+        userData: otpState.pendingUserData,
       }, { auth: false });
 
       if (!res.verified) {
@@ -407,47 +408,41 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // Successful verification! Complete session
-      if (otpState.purpose === "login") {
-        const loggedUser = res.user || otpState.user;
-        if (loggedUser) {
-          loggedUser.isVerified = true;
-          if (otpState.type === "email") loggedUser.isEmailVerified = true;
-          if (otpState.type === "phone") loggedUser.isPhoneVerified = true;
+      const user = res.user || otpState.user || (otpState.pendingUserData ? {
+        id: "u_" + Date.now(),
+        name: otpState.pendingUserData.name,
+        email: otpState.pendingUserData.email,
+        phone: otpState.pendingUserData.phone,
+        role: otpState.pendingUserData.role,
+        isVerified: true,
+        isEmailVerified: otpState.type === "email",
+        isPhoneVerified: otpState.type === "phone",
+      } : null);
 
-          if (window.Storage) window.Storage.setCurrentUser(loggedUser);
-          if (res.token) localStorage.setItem("lf_token", res.token);
-          redirectByUserRole(loggedUser);
-        }
-      } else {
-        // Registration verification
-        if (otpState.pendingUserData) {
-          // Attempt backend registration
-          let registeredUser = null;
+      if (user) {
+        user.isVerified = true;
+        if (otpState.type === "email") user.isEmailVerified = true;
+        if (otpState.type === "phone") user.isPhoneVerified = true;
+
+        if (window.Storage) {
           try {
-            const regEndpoint = otpState.pendingUserData.role === "worker"
-              ? "/auth/register/worker"
-              : "/auth/register/customer";
-            const regRes = await window.LocalFixAPI.post(regEndpoint, otpState.pendingUserData, { auth: false });
-            if (regRes.user) {
-              registeredUser = regRes.user;
-              if (regRes.token) localStorage.setItem("lf_token", regRes.token);
+            if (otpState.pendingUserData) {
+              window.Storage.registerUser({
+                ...otpState.pendingUserData,
+                isVerified: true,
+                isEmailVerified: otpState.type === "email",
+                isPhoneVerified: otpState.type === "phone",
+              });
             }
-          } catch (backendRegErr) {
-            console.warn("Backend registration fallback to local storage:", backendRegErr.message);
+          } catch (e) {
+            // Already in local storage, continue
           }
-
-          if (!registeredUser) {
-            registeredUser = window.Storage.registerUser({
-              ...otpState.pendingUserData,
-              isVerified: true,
-              isEmailVerified: otpState.type === "email",
-              isPhoneVerified: otpState.type === "phone",
-            });
-          }
-
-          if (window.Storage) window.Storage.setCurrentUser(registeredUser);
-          redirectByUserRole(registeredUser);
+          window.Storage.setCurrentUser(user);
         }
+
+        if (res.token) localStorage.setItem("lf_token", res.token);
+        redirectByUserRole(user);
+        return;
       }
     } catch (err) {
       showOtpError(err.message || t("otp.err_invalid", "Incorrect verification code. Please check and try again."));

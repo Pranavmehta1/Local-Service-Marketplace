@@ -1,11 +1,8 @@
 /**
  * LocalFix Official Email Delivery Service
- * Supports:
- * 1. Dedicated Gmail SMTP via Google App Password (SMTP_USER + SMTP_APP_PASSWORD)
- * 2. Custom SMTP (Brevo, Amazon SES, Mailgun, Zoho, etc.)
- * 3. Resend HTTP REST API (RESEND_API_KEY)
  *
- * All credentials are read strictly from process.env and never logged or exposed.
+ * Professional transactional email sender with Gmail SMTP & custom provider support.
+ * All credentials are read securely from environment variables.
  */
 
 const nodemailer = require('nodemailer');
@@ -14,14 +11,13 @@ const nodemailer = require('nodemailer');
  * Resolve effective SMTP configuration
  */
 function getSmtpConfig() {
-  const user = process.env.SMTP_USER || process.env.GMAIL_USER || '';
+  const user = (process.env.SMTP_USER || process.env.GMAIL_USER || '').trim();
   const rawPass = process.env.SMTP_APP_PASSWORD || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
-  const pass = rawPass.replace(/\s+/g, '');
-  let host = process.env.SMTP_HOST || '';
+  const pass = rawPass.replace(/\s+/g, ''); // Strip any accidental spaces from Google App Password
+  let host = (process.env.SMTP_HOST || '').trim();
   let port = Number(process.env.SMTP_PORT) || 0;
   let secure = process.env.SMTP_SECURE === 'true';
 
-  // Automatically detect Gmail if user has a gmail address
   const isGmail = user.toLowerCase().endsWith('@gmail.com') || host.includes('gmail');
   if (isGmail && !host) {
     host = 'smtp.gmail.com';
@@ -33,232 +29,91 @@ function getSmtpConfig() {
 }
 
 /**
- * Generate LocalFix Branded Responsive HTML Template
+ * Generate Clean, Professional Transactional HTML Template for LocalFix
  */
-function generateOtpEmailHtml({ otp, name, expiryMinutes = 5, purpose = 'login' }) {
-  const isRegister = purpose === 'register';
-  const heading = isRegister ? 'Confirm Your Account Registration' : 'Two-Step Login Verification';
-  const actionText = isRegister
-    ? 'complete your account creation on the LocalFix marketplace'
-    : 'securely sign in to your LocalFix account';
+function generateOtpEmailHtml({ otp, expiryMinutes = 5 }) {
+  const cleanOtp = String(otp || '').trim().padStart(6, '0');
 
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your LocalFix Verification Code</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #0b1120;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #334155;
-    }
-    .wrapper {
-      width: 100%;
-      table-layout: fixed;
-      background-color: #0b1120;
-      padding: 40px 16px;
-    }
-    .main-card {
-      max-width: 560px;
-      margin: 0 auto;
-      background: #ffffff;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-    }
-    .header {
-      background: linear-gradient(135deg, #090e1a 0%, #034870 100%);
-      padding: 36px 32px;
-      text-align: center;
-    }
-    .brand-logo {
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      color: #ffffff;
-      text-decoration: none;
-      display: inline-block;
-    }
-    .brand-accent {
-      color: #38bdf8;
-    }
-    .brand-badge {
-      display: inline-block;
-      margin-top: 8px;
-      padding: 4px 12px;
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-      color: #7dd3fc;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .content {
-      padding: 36px 32px 28px 32px;
-    }
-    h1 {
-      font-size: 20px;
-      font-weight: 700;
-      color: #0f172a;
-      margin: 0 0 12px 0;
-    }
-    p {
-      font-size: 14px;
-      line-height: 1.6;
-      color: #475569;
-      margin: 0 0 16px 0;
-    }
-    .otp-box {
-      margin: 28px 0;
-      padding: 20px;
-      background: #f8fafc;
-      border: 2px dashed #0284c7;
-      border-radius: 12px;
-      text-align: center;
-    }
-    .otp-label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #0284c7;
-      margin-bottom: 8px;
-    }
-    .otp-code {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 38px;
-      font-weight: 800;
-      letter-spacing: 8px;
-      color: #0f172a;
-      padding-left: 8px;
-      margin: 0;
-    }
-    .otp-expiry {
-      font-size: 12px;
-      color: #64748b;
-      margin-top: 8px;
-    }
-    .warning-box {
-      background: #fffbeb;
-      border-left: 4px solid #f59e0b;
-      padding: 12px 16px;
-      border-radius: 4px;
-      margin-top: 24px;
-    }
-    .warning-text {
-      font-size: 12px;
-      line-height: 1.5;
-      color: #92400e;
-      margin: 0;
-    }
-    .footer {
-      background: #f1f5f9;
-      padding: 24px 32px;
-      text-align: center;
-      border-top: 1px solid #e2e8f0;
-    }
-    .footer-text {
-      font-size: 12px;
-      color: #94a3b8;
-      line-height: 1.5;
-      margin: 0 0 8px 0;
-    }
-    .footer-link {
-      color: #0284c7;
-      text-decoration: none;
-    }
-  </style>
+  <title>Your LocalFix verification code</title>
 </head>
-<body>
-  <table role="presentation" class="wrapper" width="100%" cellspacing="0" cellpadding="0">
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 36px 16px;">
     <tr>
       <td align="center">
-        <div class="main-card">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 480px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
           <!-- Header -->
-          <div class="header">
-            <div class="brand-logo">Local<span class="brand-accent">Fix</span></div>
-            <div><span class="brand-badge">Two-Step Security</span></div>
-          </div>
-          <!-- Body Content -->
-          <div class="content">
-            <h1>${heading}</h1>
-            <p>Hello${name ? ' ' + name : ''},</p>
-            <p>You requested a single-use verification code to ${actionText}. Use the 6-digit code below to proceed:</p>
-            
-            <div class="otp-box">
-              <div class="otp-label">Verification Code</div>
-              <div class="otp-code">${otp}</div>
-              <div class="otp-expiry">Valid for <strong>${expiryMinutes} minutes</strong> only.</div>
-            </div>
-
-            <div class="warning-box">
-              <p class="warning-text">
-                <strong>Important Security Notice:</strong> Never share this code with anyone, including LocalFix technicians, customer support, or administrators. We will never ask you for your verification code.
+          <tr>
+            <td style="padding: 24px 32px 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span style="font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px;">Local<span style="color: #0284c7;">Fix</span></span>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 32px 32px 24px 32px;">
+              <h1 style="font-size: 18px; font-weight: 600; color: #0f172a; margin: 0 0 14px 0; line-height: 1.4;">Your verification code</h1>
+              <p style="font-size: 14px; line-height: 1.6; color: #334155; margin: 0 0 20px 0;">
+                Use the following 6-digit code to complete your verification on LocalFix:
               </p>
-            </div>
+              
+              <!-- 6-digit Code Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 0 0 20px 0;">
+                <tr>
+                  <td align="center" style="background-color: #f1f5f9; border-radius: 6px; padding: 18px 24px;">
+                    <span style="font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 34px; font-weight: 700; letter-spacing: 8px; color: #0f172a; display: inline-block; padding-left: 8px;">${cleanOtp}</span>
+                  </td>
+                </tr>
+              </table>
 
-            <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-              If you did not initiate this request, your account may be at risk. We recommend changing your password immediately.
-            </p>
-          </div>
+              <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0 0 16px 0;">
+                This code expires in <strong>${expiryMinutes} minutes</strong>.
+              </p>
+              
+              <div style="background-color: #fefce8; border-left: 3px solid #eab308; padding: 12px 14px; border-radius: 4px; margin: 0 0 16px 0;">
+                <p style="font-size: 13px; color: #854d0e; line-height: 1.5; margin: 0;">
+                  <strong>Security warning:</strong> Never share this code with anyone. LocalFix staff will never ask you for your verification code.
+                </p>
+              </div>
+            </td>
+          </tr>
           <!-- Footer -->
-          <div class="footer">
-            <p class="footer-text">
-              Sent securely by <strong>LocalFix</strong> — Punjab &amp; North India's Verified Home Services Marketplace.
-            </p>
-            <p class="footer-text">
-              Questions? Visit our <a class="footer-link" href="#">Help &amp; Support Center</a>.
-            </p>
-          </div>
-        </div>
+          <tr>
+            <td style="padding: 18px 32px; background-color: #f8fafc; border-top: 1px solid #f1f5f9;">
+              <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0;">
+                This is an automated account-security email from LocalFix. If you did not request this code, no action is needed.
+              </p>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
   </table>
 </body>
-</html>
-  `;
+</html>`;
 }
 
 /**
- * Send email using Resend HTTP API
+ * Generate Plain-Text Fallback
  */
-async function sendViaResend({ to, subject, html, text }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return false;
+function generateOtpPlainText({ otp, expiryMinutes = 5 }) {
+  const cleanOtp = String(otp || '').trim().padStart(6, '0');
+  return `LocalFix Verification Code
 
-  const from = process.env.EMAIL_FROM || 'LocalFix <no-reply@localfix.in>';
+Your verification code is: ${cleanOtp}
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject,
-      html,
-      text,
-    }),
-  });
+This code expires in ${expiryMinutes} minutes.
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || `Resend delivery failed with status ${res.status}`);
-  }
-  return { provider: 'resend', id: data.id };
+Security warning: Never share this code with anyone. LocalFix will never ask you for your code.
+
+This is an automated account-security email from LocalFix.`;
 }
 
 /**
- * Build Nodemailer transporter from environment
+ * Build Nodemailer Transporter
  */
 function createSmtpTransporter() {
   const { user, pass, host, port, secure, isGmail } = getSmtpConfig();
@@ -267,10 +122,7 @@ function createSmtpTransporter() {
   if (isGmail) {
     return nodemailer.createTransport({
       service: 'gmail',
-      auth: {
-        user,
-        pass,
-      },
+      auth: { user, pass },
     });
   }
 
@@ -278,43 +130,42 @@ function createSmtpTransporter() {
     host,
     port,
     secure,
-    auth: {
-      user,
-      pass,
-    },
+    auth: { user, pass },
   });
 }
 
 /**
- * Send email using SMTP (Gmail / Custom SMTP)
+ * Send email using SMTP
  */
 async function sendViaSmtp({ to, subject, html, text }) {
-  const { user, pass, isGmail } = getSmtpConfig();
-  if (!user || !pass) return false;
-
+  const { user } = getSmtpConfig();
   const transporter = createSmtpTransporter();
   if (!transporter) return false;
 
-  // Gmail requires the "From" address to match the authenticated account
-  const senderAddress = process.env.EMAIL_FROM || `LocalFix <${user}>`;
+  // Ensure From matches authenticated address to avoid spam rejection
+  const senderAddress = `"LocalFix" <${user}>`;
+
+  const mailOptions = {
+    from: senderAddress,
+    to,
+    subject,
+    text,
+    html,
+    replyTo: user,
+    headers: {
+      'X-Priority': '1',
+      'X-Auto-Response-Suppress': 'OOF, AutoReply',
+    },
+  };
 
   try {
-    const info = await transporter.sendMail({
-      from: senderAddress,
-      to,
-      subject,
-      text,
-      html,
-    });
-
-    return { provider: isGmail ? 'gmail' : 'smtp', messageId: info.messageId };
+    const info = await transporter.sendMail(mailOptions);
+    return { provider: 'gmail', messageId: info.messageId };
   } catch (err) {
-    // Provide actionable diagnosis for Google App Password / SMTP errors
     if (err.code === 'EAUTH' || (err.response && err.response.includes('535'))) {
-      const guidance = isGmail
-        ? 'Gmail authentication failed (535). You must use a 16-character Google App Password (not your normal Gmail password), and 2-Step Verification must be enabled on your Google account.'
-        : 'SMTP authentication failed. Please verify your SMTP_USER and SMTP_PASS.';
-      const customErr = new Error(guidance);
+      const customErr = new Error(
+        'Gmail authentication failed. Verify that 2-Step Verification is enabled and you are using a 16-character Google App Password in SMTP_APP_PASSWORD.'
+      );
       customErr.code = 'SMTP_AUTH_FAILED';
       throw customErr;
     }
@@ -323,41 +174,38 @@ async function sendViaSmtp({ to, subject, html, text }) {
 }
 
 /**
- * Test SMTP connection without sending email
- */
-async function verifyEmailConfig() {
-  const transporter = createSmtpTransporter();
-  if (!transporter) {
-    return { ok: false, error: 'SMTP credentials missing. Please set SMTP_USER and SMTP_APP_PASSWORD in backend/.env.' };
-  }
-  try {
-    await transporter.verify();
-    return { ok: true, message: 'SMTP connection verified successfully.' };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
-}
-
-/**
  * Main sendOtpEmail dispatcher
  */
-async function sendOtpEmail({ email, otp, name, expiryMinutes = 5, purpose = 'login' }) {
-  const subject = `Your LocalFix Verification Code: ${otp}`;
-  const html = generateOtpEmailHtml({ otp, name, expiryMinutes, purpose });
-  const text = `Your LocalFix verification code is ${otp}. It is valid for ${expiryMinutes} minutes. Never share this code with anyone.`;
+async function sendOtpEmail({ email, otp, expiryMinutes = 5, purpose = 'login' }) {
+  const subject = 'Your LocalFix verification code';
+  const html = generateOtpEmailHtml({ otp, expiryMinutes });
+  const text = generateOtpPlainText({ otp, expiryMinutes });
 
-  // 1. Try Gmail / Custom SMTP if configured
   const { user, pass } = getSmtpConfig();
   if (user && pass) {
     return await sendViaSmtp({ to: email, subject, html, text });
   }
 
-  // 2. Try Resend if configured
   if (process.env.RESEND_API_KEY) {
-    return await sendViaResend({ to: email, subject, html, text });
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: process.env.EMAIL_FROM || `"LocalFix" <no-reply@localfix.in>`,
+        to: [email],
+        subject,
+        html,
+        text,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || `Resend delivery failed`);
+    return { provider: 'resend', id: data.id };
   }
 
-  // 3. Neither configured: Throw descriptive error
   const error = new Error(
     'Email delivery service is not configured. Please add SMTP_USER and SMTP_APP_PASSWORD to backend/.env.'
   );
@@ -368,6 +216,6 @@ async function sendOtpEmail({ email, otp, name, expiryMinutes = 5, purpose = 'lo
 module.exports = {
   sendOtpEmail,
   generateOtpEmailHtml,
-  verifyEmailConfig,
+  generateOtpPlainText,
   getSmtpConfig,
 };
