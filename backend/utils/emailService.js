@@ -15,7 +15,8 @@ const nodemailer = require('nodemailer');
  */
 function getSmtpConfig() {
   const user = process.env.SMTP_USER || process.env.GMAIL_USER || '';
-  const pass = process.env.SMTP_APP_PASSWORD || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
+  const rawPass = process.env.SMTP_APP_PASSWORD || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
+  const pass = rawPass.replace(/\s+/g, '');
   let host = process.env.SMTP_HOST || '';
   let port = Number(process.env.SMTP_PORT) || 0;
   let secure = process.env.SMTP_SECURE === 'true';

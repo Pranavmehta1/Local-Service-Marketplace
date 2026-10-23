@@ -11,7 +11,8 @@
  * 3. Sends a real test verification email if a recipient address is provided.
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const { sendOtpEmail, verifyEmailConfig, getSmtpConfig } = require('./utils/emailService');
 
 async function main() {
