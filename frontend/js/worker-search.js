@@ -132,8 +132,9 @@ async function applyFilters() {
 
   let workers = [];
   let registeredWorkersCount = 0;
+  let apiError = false;
 
-  // Try fetching live workers from backend API
+  // Fetch live verified workers strictly from MongoDB backend API
   try {
     if (window.LocalFixAPI) {
       const qParams = new URLSearchParams();
@@ -143,7 +144,11 @@ async function applyFilters() {
       if (sort && sort !== "recommended") qParams.append("sort", sort);
 
       const [res, stats] = await Promise.all([
-        window.LocalFixAPI.get(`/workers?${qParams.toString()}`).catch(() => null),
+        window.LocalFixAPI.get(`/workers?${qParams.toString()}`).catch((e) => {
+          console.warn("Worker API error:", e);
+          apiError = true;
+          return null;
+        }),
         window.LocalFixAPI.get("/platform/stats").catch(() => null)
       ]);
 
@@ -176,23 +181,11 @@ async function applyFilters() {
       }
     }
   } catch (err) {
+    apiError = true;
     console.warn("Worker live fetch notice:", err);
   }
 
-  // Fallback to local storage if API returned no data and local workers exist
-  if (!workers.length) {
-    const localWorkers = window.Storage.getWorkers({
-      category,
-      state: state === "all" ? "" : state,
-      area,
-      minRating,
-      maxPrice,
-      query
-    });
-    if (localWorkers && localWorkers.length) {
-      workers = localWorkers;
-    }
-  }
+  // Strict MongoDB Single Source of Truth — NO fallback to stale browser localStorage
 
   // Client-side area/query refinement
   if (state && state !== "all") {
@@ -246,7 +239,7 @@ async function applyFilters() {
     }
   }
 
-  renderResults(workers, { state, area, category, registeredWorkersCount });
+  renderResults(workers, { state, area, category, registeredWorkersCount, apiError });
 
   if (isMapViewActive && window.LocalFixMap) {
     window.LocalFixMap.initSearchMap("searchMap", workers);
@@ -269,7 +262,10 @@ function renderResults(results, currentFilters = {}) {
       let emptyTitle = "No verified workers found";
       let emptyMsg   = "No technicians found matching your criteria.";
 
-      if (currentFilters.registeredWorkersCount > 0) {
+      if (currentFilters.apiError) {
+        emptyTitle = "Connection Error";
+        emptyMsg   = "Unable to reach the backend service to retrieve verified technicians. Please check your internet connection or verify the backend server is running.";
+      } else if (currentFilters.registeredWorkersCount > 0) {
         emptyTitle = "Worker Verification in Progress";
         emptyMsg   = `There are <strong>${currentFilters.registeredWorkersCount}</strong> technician(s) registered on LocalFix who are currently undergoing verification. Once an application is approved by an admin, the verified profile will appear here immediately.`;
       } else if (state) {

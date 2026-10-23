@@ -9,7 +9,7 @@
  */
 
 const LocalFixStorage = (() => {
-  const DATA_VERSION = "lf_v13"; // bumped: force-cleans all previous dummy ratings & seeded reviews
+  const DATA_VERSION = "lf_v15_sync"; // bumped: syncs and purges legacy localStorage mock/stale worker data
 
   const KEYS = {
     USERS: "lf_users",
@@ -75,10 +75,10 @@ const LocalFixStorage = (() => {
 
   const init = () => {
     const storedVersion = localStorage.getItem(KEYS.VERSION);
-    if (false && storedVersion !== DATA_VERSION) {
-      // no-op
-      // no-op
-      // no-op
+    if (storedVersion !== DATA_VERSION) {
+      localStorage.setItem(KEYS.WORKERS, JSON.stringify(DEFAULT_WORKERS));
+      localStorage.setItem(KEYS.USERS, JSON.stringify(DEFAULT_USERS));
+      localStorage.setItem(KEYS.VERSION, DATA_VERSION);
     }
     if (!localStorage.getItem(KEYS.USERS))         localStorage.setItem(KEYS.USERS,         JSON.stringify(DEFAULT_USERS));
     if (!localStorage.getItem(KEYS.WORKERS))       localStorage.setItem(KEYS.WORKERS,       JSON.stringify(DEFAULT_WORKERS));
