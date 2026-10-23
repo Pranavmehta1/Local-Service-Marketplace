@@ -533,7 +533,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/storage.js?v=lf_stats_v1"></script>
+<script src="js/api.js"></script>
+<script src="js/storage.js?v=lf_stats_v2"></script>
 <script src="js/sampleData.js"></script>
 <script>
 const nav = document.getElementById("mainNav");
@@ -604,7 +605,8 @@ function animateCounterTo(el, startVal, endVal, suffix) {
   }, 25);
 }
 
-function renderPlatformStatistics() {
+let isFetchingStats = false;
+async function renderPlatformStatistics() {
   const elWorkers = document.getElementById("statRegisteredWorkers");
   const elCustomers = document.getElementById("statRegisteredCustomers");
   const elRepairs = document.getElementById("statRepairsCompleted");
@@ -614,22 +616,45 @@ function renderPlatformStatistics() {
   const statElements = [elWorkers, elCustomers, elRepairs, elAreas, elCSAT].filter(Boolean);
   if (!statElements.length) return;
 
-  let stats;
-  try {
-    if (!window.Storage || typeof window.Storage.getPlatformStatistics !== "function") {
-      throw new Error("Storage engine unavailable");
+  let stats = null;
+  if (!isFetchingStats) {
+    isFetchingStats = true;
+    try {
+      if (window.Storage && typeof window.Storage.getPlatformStatisticsAsync === "function") {
+        stats = await window.Storage.getPlatformStatisticsAsync();
+      } else if (window.LocalFixAPI) {
+        stats = await window.LocalFixAPI.get('/platform/stats');
+      }
+    } catch (err) {
+      console.warn("Live MongoDB statistics fetch note:", err);
+    } finally {
+      isFetchingStats = false;
     }
-    stats = window.Storage.getPlatformStatistics();
-    if (!stats || stats.success === false) {
-      throw new Error("Failed to retrieve statistics");
+  }
+
+  // If live fetch returned data, use it; otherwise check cached stats
+  if (!stats || stats.success === false) {
+    try {
+      const cached = localStorage.getItem('lf_cached_stats');
+      if (cached) stats = JSON.parse(cached);
+    } catch (_) {}
+  }
+
+  // Fallback to local storage engine if remote is completely unreachable
+  if (!stats || stats.success === false) {
+    if (window.Storage && typeof window.Storage.getPlatformStatistics === "function") {
+      stats = window.Storage.getPlatformStatistics();
     }
-  } catch (err) {
-    // Database or server error fallback
+  }
+
+  if (!stats || stats.success === false) {
+    // Database or server error fallback - show connecting state instead of falsely 0
     statElements.forEach(function(el) {
-      el.className = "lf-stat-big lf-stat-fallback";
-      delete el.dataset.count;
-      delete el.dataset.value;
-      el.textContent = "Currently unavailable";
+      if (!el.dataset.value) {
+        el.className = "lf-stat-big lf-stat-fallback";
+        delete el.dataset.count;
+        el.textContent = "Connecting...";
+      }
     });
     return;
   }

@@ -565,6 +565,11 @@ const LocalFixStorage = (() => {
             if (key) uniqueWorkerAccounts.add(key);
           }
         });
+        const curUser = LocalFixStorage.getCurrentUser();
+        if (curUser && curUser.role === "worker") {
+          const key = String(curUser.email || curUser.id).trim().toLowerCase();
+          if (key) uniqueWorkerAccounts.add(key);
+        }
         const registeredWorkersCount = uniqueWorkerAccounts.size;
 
         // 2. Registered Customers: Genuine accounts created via Customer registration flow
@@ -575,6 +580,10 @@ const LocalFixStorage = (() => {
             if (key) uniqueCustomerAccounts.add(key);
           }
         });
+        if (curUser && curUser.role === "customer") {
+          const key = String(curUser.email || curUser.id).trim().toLowerCase();
+          if (key) uniqueCustomerAccounts.add(key);
+        }
         const registeredCustomersCount = uniqueCustomerAccounts.size;
 
         // Also track verified workers count
@@ -650,12 +659,22 @@ const LocalFixStorage = (() => {
         if (window.LocalFixAPI) {
           const res = await window.LocalFixAPI.get('/platform/stats');
           if (res && res.success) {
+            try {
+              localStorage.setItem('lf_cached_stats', JSON.stringify(res));
+            } catch (e) {}
             return res;
           }
         }
       } catch (e) {
         console.warn("Could not fetch remote stats, falling back to local cache:", e);
       }
+      try {
+        const cached = localStorage.getItem('lf_cached_stats');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.success) return parsed;
+        }
+      } catch (e) {}
       return LocalFixStorage.getPlatformStatistics();
     },
 

@@ -608,6 +608,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // 4. Authenticated! Save session and redirect directly to dashboard — NO OTP
       window.Storage.setCurrentUser(matchedUser);
+      try {
+        const localUsers = window.Storage.getUsers();
+        if (!localUsers.some((u) => u.email && u.email.toLowerCase() === (matchedUser.email || '').toLowerCase())) {
+          window.Storage.addUser(matchedUser);
+        }
+      } catch (_) {}
       if (token) {
         localStorage.setItem("lf_token", token);
       }

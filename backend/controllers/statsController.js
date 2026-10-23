@@ -11,19 +11,30 @@ const getPlatformStats = async (req, res, next) => {
   try {
     const [
       registeredCustomers,
-      registeredWorkers,
+      workerUsers,
+      workerDocs,
       verifiedWorkers,
       repairsCompleted,
       rawAreas,
       reviews,
     ] = await Promise.all([
       User.countDocuments({ role: 'customer' }),
-      User.countDocuments({ role: 'worker' }),
+      User.find({ role: 'worker' }).select('_id email'),
+      Worker.find().select('_id userId verificationStatus serviceArea'),
       Worker.countDocuments({ verificationStatus: 'approved' }),
       Booking.countDocuments({ status: 'completed' }),
       Worker.distinct('serviceArea'),
       Review.find().select('rating'),
     ]);
+
+    // Unify worker accounts across User (role: 'worker') and Worker collection without double-counting
+    const workerKeys = new Set();
+    workerUsers.forEach((u) => workerKeys.add(String(u._id)));
+    workerDocs.forEach((w) => {
+      if (w.userId) workerKeys.add(String(w.userId));
+      else if (w._id) workerKeys.add(String(w._id));
+    });
+    const registeredWorkers = Math.max(workerKeys.size, workerUsers.length, workerDocs.length);
 
     const areasCovered = rawAreas.filter(Boolean).length;
 
