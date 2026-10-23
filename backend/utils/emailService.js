@@ -1,16 +1,35 @@
 /**
- * LocalFix Branded Transactional Email Service
+ * LocalFix Official Email Delivery Service
  * Supports:
- * 1. Resend HTTP API (via RESEND_API_KEY)
- * 2. Custom SMTP / Nodemailer (Brevo, AWS SES, Gmail, Mailgun, etc.)
+ * 1. Dedicated Gmail SMTP via Google App Password (SMTP_USER + SMTP_APP_PASSWORD)
+ * 2. Custom SMTP (Brevo, Amazon SES, Mailgun, Zoho, etc.)
+ * 3. Resend HTTP REST API (RESEND_API_KEY)
  *
- * All credentials are read strictly from process.env and never hardcoded.
+ * All credentials are read strictly from process.env and never logged or exposed.
  */
 
 const nodemailer = require('nodemailer');
 
-const BRAND_NAME = 'LocalFix';
-const DEFAULT_FROM = process.env.EMAIL_FROM || 'LocalFix <no-reply@localfix.in>';
+/**
+ * Resolve effective SMTP configuration
+ */
+function getSmtpConfig() {
+  const user = process.env.SMTP_USER || process.env.GMAIL_USER || '';
+  const pass = process.env.SMTP_APP_PASSWORD || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
+  let host = process.env.SMTP_HOST || '';
+  let port = Number(process.env.SMTP_PORT) || 0;
+  let secure = process.env.SMTP_SECURE === 'true';
+
+  // Automatically detect Gmail if user has a gmail address
+  const isGmail = user.toLowerCase().endsWith('@gmail.com') || host.includes('gmail');
+  if (isGmail && !host) {
+    host = 'smtp.gmail.com';
+    port = port || 465;
+    secure = port === 465;
+  }
+
+  return { user, pass, host, port: port || 587, secure, isGmail };
+}
 
 /**
  * Generate LocalFix Branded Responsive HTML Template
@@ -213,6 +232,8 @@ async function sendViaResend({ to, subject, html, text }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return false;
 
+  const from = process.env.EMAIL_FROM || 'LocalFix <no-reply@localfix.in>';
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -220,7 +241,7 @@ async function sendViaResend({ to, subject, html, text }) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: DEFAULT_FROM,
+      from,
       to: [to],
       subject,
       html,
@@ -236,31 +257,84 @@ async function sendViaResend({ to, subject, html, text }) {
 }
 
 /**
- * Send email using SMTP (Nodemailer)
+ * Build Nodemailer transporter from environment
  */
-async function sendViaSmtp({ to, subject, html, text }) {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return false;
+function createSmtpTransporter() {
+  const { user, pass, host, port, secure, isGmail } = getSmtpConfig();
+  if (!user || !pass) return null;
 
-  const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true' || Number(SMTP_PORT) === 465,
+  if (isGmail) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user,
+        pass,
+      },
+    });
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
     auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS,
+      user,
+      pass,
     },
   });
+}
 
-  const info = await transporter.sendMail({
-    from: DEFAULT_FROM,
-    to,
-    subject,
-    text,
-    html,
-  });
+/**
+ * Send email using SMTP (Gmail / Custom SMTP)
+ */
+async function sendViaSmtp({ to, subject, html, text }) {
+  const { user, pass, isGmail } = getSmtpConfig();
+  if (!user || !pass) return false;
 
-  return { provider: 'smtp', messageId: info.messageId };
+  const transporter = createSmtpTransporter();
+  if (!transporter) return false;
+
+  // Gmail requires the "From" address to match the authenticated account
+  const senderAddress = process.env.EMAIL_FROM || `LocalFix <${user}>`;
+
+  try {
+    const info = await transporter.sendMail({
+      from: senderAddress,
+      to,
+      subject,
+      text,
+      html,
+    });
+
+    return { provider: isGmail ? 'gmail' : 'smtp', messageId: info.messageId };
+  } catch (err) {
+    // Provide actionable diagnosis for Google App Password / SMTP errors
+    if (err.code === 'EAUTH' || (err.response && err.response.includes('535'))) {
+      const guidance = isGmail
+        ? 'Gmail authentication failed (535). You must use a 16-character Google App Password (not your normal Gmail password), and 2-Step Verification must be enabled on your Google account.'
+        : 'SMTP authentication failed. Please verify your SMTP_USER and SMTP_PASS.';
+      const customErr = new Error(guidance);
+      customErr.code = 'SMTP_AUTH_FAILED';
+      throw customErr;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Test SMTP connection without sending email
+ */
+async function verifyEmailConfig() {
+  const transporter = createSmtpTransporter();
+  if (!transporter) {
+    return { ok: false, error: 'SMTP credentials missing. Please set SMTP_USER and SMTP_APP_PASSWORD in backend/.env.' };
+  }
+  try {
+    await transporter.verify();
+    return { ok: true, message: 'SMTP connection verified successfully.' };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
 }
 
 /**
@@ -271,28 +345,20 @@ async function sendOtpEmail({ email, otp, name, expiryMinutes = 5, purpose = 'lo
   const html = generateOtpEmailHtml({ otp, name, expiryMinutes, purpose });
   const text = `Your LocalFix verification code is ${otp}. It is valid for ${expiryMinutes} minutes. Never share this code with anyone.`;
 
-  // 1. Try Resend if configured
+  // 1. Try Gmail / Custom SMTP if configured
+  const { user, pass } = getSmtpConfig();
+  if (user && pass) {
+    return await sendViaSmtp({ to: email, subject, html, text });
+  }
+
+  // 2. Try Resend if configured
   if (process.env.RESEND_API_KEY) {
     return await sendViaResend({ to: email, subject, html, text });
   }
 
-  // 2. Try SMTP if configured
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    return await sendViaSmtp({ to: email, subject, html, text });
-  }
-
-  // 3. Fallback: Neither provider is configured
-  console.warn(
-    '\x1b[33m%s\x1b[0m',
-    `[LocalFix Email Service] No live email provider configured in backend/.env.`
-  );
-  console.warn(
-    '\x1b[36m%s\x1b[0m',
-    `[LocalFix Email Service] Setup: Add RESEND_API_KEY or (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) to backend/.env.`
-  );
-
+  // 3. Neither configured: Throw descriptive error
   const error = new Error(
-    'Email delivery service is not configured. Please configure RESEND_API_KEY or SMTP credentials in backend/.env.'
+    'Email delivery service is not configured. Please add SMTP_USER and SMTP_APP_PASSWORD to backend/.env.'
   );
   error.code = 'EMAIL_NOT_CONFIGURED';
   throw error;
@@ -301,4 +367,6 @@ async function sendOtpEmail({ email, otp, name, expiryMinutes = 5, purpose = 'lo
 module.exports = {
   sendOtpEmail,
   generateOtpEmailHtml,
+  verifyEmailConfig,
+  getSmtpConfig,
 };

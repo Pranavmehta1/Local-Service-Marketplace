@@ -1,10 +1,10 @@
 /**
  * LocalFix Authentication & Two-Step Verification (OTP) Controller
  * - Multi-role session isolation (Customer & Service Worker)
- * - Two-Step OTP Verification for Email & SMS (India & International)
+ * - Two-Step OTP Verification for Email & SMS
  * - 6-Digit Auto-advancing, Backspace & Paste-supporting OTP input
  * - Dynamic 5-minute expiry countdown & 60s resend cooldown
- * - Delivery method toggle (Email <-> SMS)
+ * - Real error diagnostics (no fake success, no mock bypass)
  * - Full Hindi & English i18n support
  */
 document.addEventListener("DOMContentLoaded", () => {
@@ -43,10 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (params.get("role") === "worker") currentRole = "worker";
   if (params.get("mode") === "register") currentTab = "register";
 
-  // Helper for translations
   const t = (k, d) => (window.i18n ? window.i18n.t(k, d) : d);
 
-  // ── OTP State ─────────────────────────────────────────────────────────────
+  // ── OTP State (Pure Backend-Backed, No Mocking) ───────────────────────────
   const otpState = {
     active: false,
     purpose: "login", // 'login' | 'register'
@@ -59,7 +58,6 @@ document.addEventListener("DOMContentLoaded", () => {
     cooldownSeconds: 60,
     expiryTimer: null,
     cooldownTimer: null,
-    mockOtp: null, // For offline/demo fallback
   };
 
   // ── Inline Validation Helpers ─────────────────────────────────────────────
@@ -185,14 +183,13 @@ document.addEventListener("DOMContentLoaded", () => {
         : t("otp.sent_to_phone", "We sent a 6-digit SMS verification code to your phone");
     }
     if (otpTargetDisplay) {
-      otpTargetDisplay.textContent = isEmail ? otpState.email : (otpState.phone || "your mobile number");
+      otpTargetDisplay.textContent = isEmail ? otpState.email : (otpState.phone || "your phone");
     }
     if (btnOtpSwitchMethodText) {
       btnOtpSwitchMethodText.textContent = isEmail
         ? t("otp.switch_to_phone", "Send code via SMS to phone instead")
         : t("otp.switch_to_email", "Send code to email instead");
     }
-    // Only show switch method if the other contact info is available
     if (btnOtpSwitchMethod) {
       const hasOther = isEmail ? !!otpState.phone : !!otpState.email;
       btnOtpSwitchMethod.parentElement?.classList.toggle("d-none", !hasOther);
@@ -247,7 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
     otpNotice?.classList.add("d-none");
     if (otpInputsContainer) {
       otpInputsContainer.classList.remove("lf-otp-shake");
-      void otpInputsContainer.offsetWidth; // re-trigger reflow
+      void otpInputsContainer.offsetWidth;
       otpInputsContainer.classList.add("lf-otp-shake");
     }
   };
@@ -272,7 +269,6 @@ document.addEventListener("DOMContentLoaded", () => {
     otpState.phone = phone || "";
     otpState.userData = userData || null;
     otpState.user = user || null;
-    otpState.mockOtp = null;
 
     authMainFlow?.classList.add("d-none");
     otpSection?.classList.remove("d-none");
@@ -298,7 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
     clearOtpMessages();
   };
 
-  // ── Dispatch OTP Send (API with Offline Fallback) ─────────────────────────
+  // ── Dispatch OTP Send to Backend API ─────────────────────────────────────
   const dispatchSendOtp = async () => {
     const isEmail = otpState.type === "email";
     const identifier = isEmail ? otpState.email : otpState.phone;
@@ -307,39 +303,28 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnOtpResendText) btnOtpResendText.textContent = t("otp.resending", "Sending code...");
 
     try {
-      if (window.LocalFixAPI) {
-        const res = await window.LocalFixAPI.post("/otp/send", {
-          identifier,
-          type: otpState.type,
-          purpose: otpState.purpose,
-          role: currentRole,
-        }, { auth: false });
+      if (!window.LocalFixAPI) {
+        throw new Error("LocalFixAPI client is not loaded.");
+      }
 
-        showOtpNotice(res.message || `Verification code sent to ${identifier}`);
-        startCooldownTimer(res.cooldownSeconds || 60);
-        return;
-      }
-      throw new Error("LocalFixAPI client not initialized");
+      const res = await window.LocalFixAPI.post("/otp/send", {
+        identifier,
+        type: otpState.type,
+        purpose: otpState.purpose,
+        role: currentRole,
+      }, { auth: false });
+
+      showOtpNotice(res.message || `Verification code sent to ${identifier}`);
+      startCooldownTimer(res.cooldownSeconds || 60);
     } catch (err) {
-      // Check if backend returned a provider configuration notice
-      if (err.message && (err.message.includes("configured") || err.message.includes("503") || err.message.includes("Failed to fetch"))) {
-        // Fallback for development / mock preview if live delivery credentials are absent
-        const demoOtp = String(Math.floor(100000 + Math.random() * 900000));
-        otpState.mockOtp = demoOtp;
-        console.warn(`[LocalFix OTP Demo Mode] Delivery provider unconfigured or backend offline. Demo verification OTP is: ${demoOtp}`);
-        showOtpNotice(
-          `Demo mode: Provider not configured in .env. Your demo verification code is ${demoOtp} (Backend setup: configure RESEND_API_KEY or MSG91).`
-        );
-        startCooldownTimer(60);
-      } else {
-        showOtpError(err.message || "Failed to dispatch verification code.");
-      }
+      showOtpError(err.message || "Failed to dispatch verification code.");
+      if (btnOtpResend) btnOtpResend.disabled = false;
+      if (btnOtpResendText) btnOtpResendText.textContent = t("otp.resend_code", "Resend Code");
     }
   };
 
   // ── 6-Digit Auto-advance, Backspace & Paste Event Listeners ───────────────
   otpDigits.forEach((digitInput, idx) => {
-    // Input handling
     digitInput.addEventListener("input", (e) => {
       const val = e.target.value.replace(/\D/g, "");
       e.target.value = val ? val[val.length - 1] : "";
@@ -350,14 +335,12 @@ document.addEventListener("DOMContentLoaded", () => {
         otpDigits[idx + 1].select();
       }
 
-      // If all 6 digits filled, auto-verify
       const enteredCode = Array.from(otpDigits).map((d) => d.value).join("");
       if (enteredCode.length === 6) {
         handleVerifyOtp();
       }
     });
 
-    // Keyboard navigation (Backspace & Arrows)
     digitInput.addEventListener("keydown", (e) => {
       if (e.key === "Backspace") {
         if (!e.target.value && idx > 0) {
@@ -373,7 +356,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Paste handling
     digitInput.addEventListener("paste", (e) => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData).getData("text").trim();
@@ -392,7 +374,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Focus selection
     digitInput.addEventListener("focus", () => digitInput.select());
   });
 
@@ -413,63 +394,60 @@ document.addEventListener("DOMContentLoaded", () => {
     const identifier = otpState.type === "email" ? otpState.email : otpState.phone;
 
     try {
-      let verified = false;
-      let sessionUser = null;
-      let authToken = null;
+      if (!window.LocalFixAPI) throw new Error("LocalFixAPI client is not loaded.");
 
-      // Check if backend API is responsive
-      if (window.LocalFixAPI) {
-        try {
-          const res = await window.LocalFixAPI.post("/otp/verify", {
-            identifier,
-            otp: enteredCode,
-            purpose: otpState.purpose,
-            type: otpState.type,
-          }, { auth: false });
+      const res = await window.LocalFixAPI.post("/otp/verify", {
+        identifier,
+        otp: enteredCode,
+        purpose: otpState.purpose,
+        type: otpState.type,
+      }, { auth: false });
 
-          if (res.verified) {
-            verified = true;
-            sessionUser = res.user;
-            authToken = res.token;
-          }
-        } catch (apiErr) {
-          // If demo mock OTP matches fallback
-          if (otpState.mockOtp && enteredCode === otpState.mockOtp) {
-            verified = true;
-          } else {
-            throw apiErr;
-          }
-        }
-      } else if (otpState.mockOtp && enteredCode === otpState.mockOtp) {
-        verified = true;
-      }
-
-      if (!verified) {
-        throw new Error(t("otp.err_invalid", "Incorrect verification code. Please check and try again."));
+      if (!res.verified) {
+        throw new Error(res.message || t("otp.err_invalid", "Incorrect verification code. Please check and try again."));
       }
 
       // Successful verification! Complete session
       if (otpState.purpose === "login") {
-        const loggedUser = sessionUser || otpState.user;
+        const loggedUser = res.user || otpState.user;
         if (loggedUser) {
           loggedUser.isVerified = true;
           if (otpState.type === "email") loggedUser.isEmailVerified = true;
           if (otpState.type === "phone") loggedUser.isPhoneVerified = true;
 
           if (window.Storage) window.Storage.setCurrentUser(loggedUser);
-          if (authToken) localStorage.setItem("lf_token", authToken);
+          if (res.token) localStorage.setItem("lf_token", res.token);
           redirectByUserRole(loggedUser);
         }
       } else {
         // Registration verification
         if (otpState.pendingUserData) {
-          const registered = window.Storage.registerUser({
-            ...otpState.pendingUserData,
-            isVerified: true,
-            isEmailVerified: otpState.type === "email",
-            isPhoneVerified: otpState.type === "phone",
-          });
-          redirectByUserRole(registered);
+          // Attempt backend registration
+          let registeredUser = null;
+          try {
+            const regEndpoint = otpState.pendingUserData.role === "worker"
+              ? "/auth/register/worker"
+              : "/auth/register/customer";
+            const regRes = await window.LocalFixAPI.post(regEndpoint, otpState.pendingUserData, { auth: false });
+            if (regRes.user) {
+              registeredUser = regRes.user;
+              if (regRes.token) localStorage.setItem("lf_token", regRes.token);
+            }
+          } catch (backendRegErr) {
+            console.warn("Backend registration fallback to local storage:", backendRegErr.message);
+          }
+
+          if (!registeredUser) {
+            registeredUser = window.Storage.registerUser({
+              ...otpState.pendingUserData,
+              isVerified: true,
+              isEmailVerified: otpState.type === "email",
+              isPhoneVerified: otpState.type === "phone",
+            });
+          }
+
+          if (window.Storage) window.Storage.setCurrentUser(registeredUser);
+          redirectByUserRole(registeredUser);
         }
       }
     } catch (err) {
@@ -521,33 +499,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const password = passwordEl.value;
 
     try {
-      // 1. Try backend API login if available
       let matchedUser = null;
-      let requireOtp = true;
 
+      // Call backend API login
       if (window.LocalFixAPI) {
         try {
           const res = await window.LocalFixAPI.post("/auth/login", { email, password }, { auth: false });
           if (res.requireOtp) {
             matchedUser = res.user;
-            requireOtp = true;
           } else if (res.token && res.user) {
-            // Direct login without OTP if server returned token
             window.Storage.setCurrentUser(res.user);
             localStorage.setItem("lf_token", res.token);
             redirectByUserRole(res.user);
             return;
           }
         } catch (apiErr) {
-          // If backend returned explicit 401 or role error, show field error
-          if (apiErr.message && !apiErr.message.includes("Failed to fetch")) {
+          if (apiErr.message && !apiErr.message.includes("Cannot connect")) {
             showFieldError(emailEl, apiErr.message);
             return;
           }
         }
       }
 
-      // 2. Local storage verification check
+      // Check local storage fallback for user info
       if (!matchedUser) {
         const users = window.Storage.getUsers();
         matchedUser = users.find((u) => u.email.toLowerCase() === email && u.password === password);
@@ -557,7 +531,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // Check role match
+      // Role mismatch checks
       if (currentRole === "worker" && matchedUser.role === "customer") {
         showFieldError(emailEl, "This email belongs to a Customer account. Please switch to 'Customer Account' above.");
         return;
@@ -607,7 +581,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = emailEl.value.trim().toLowerCase();
     const phone = phoneEl.value.trim();
 
-    // Check existing
     const users = window.Storage.getUsers();
     if (users.find((u) => u.email.toLowerCase() === email)) {
       showFieldError(emailEl, "An account with this email already exists.");
@@ -624,7 +597,6 @@ document.addEventListener("DOMContentLoaded", () => {
       location: locationEl?.value.trim() || "Model Town, Ludhiana",
     };
 
-    // Transition to OTP verification step
     showOtpScreen({
       purpose: "register",
       email,
@@ -687,7 +659,6 @@ document.addEventListener("DOMContentLoaded", () => {
       skills:     skillsEl?.value || "",
     };
 
-    // Transition to OTP verification step
     showOtpScreen({
       purpose: "register",
       email,
