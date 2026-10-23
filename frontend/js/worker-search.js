@@ -79,7 +79,21 @@ function initViewSwitcher() {
   });
 }
 
-function applyFilters() {
+function resolveStateFromArea(areaStr = "") {
+  const lower = areaStr.toLowerCase();
+  if (lower.includes("punjab") || lower.includes("ludhiana") || lower.includes("rajpura") || lower.includes("amritsar") || lower.includes("jalandhar") || lower.includes("chandigarh")) {
+    return "Punjab";
+  }
+  if (lower.includes("delhi") || lower.includes("rohini") || lower.includes("dwarka") || lower.includes("saket") || lower.includes("karol")) {
+    return "Delhi";
+  }
+  if (lower.includes("haryana") || lower.includes("gurugram") || lower.includes("faridabad") || lower.includes("ambala")) {
+    return "Haryana";
+  }
+  return "Punjab";
+}
+
+async function applyFilters() {
   const category  = document.getElementById("filterCategory")?.value || "";
   const state     = document.getElementById("filterState")?.value || "all";
   const area      = document.getElementById("filterArea")?.value.trim() || "";
@@ -88,15 +102,84 @@ function applyFilters() {
   const sort      = document.getElementById("filterSort")?.value || "recommended";
   const query     = document.getElementById("searchQuery")?.value.trim().toLowerCase() || "";
 
-  // Strict search via Storage engine
-  let workers = window.Storage.getWorkers({
-    category,
-    state: state === "all" ? "" : state,
-    area,
-    minRating,
-    maxPrice,
-    query
-  });
+  let workers = [];
+  let registeredWorkersCount = 0;
+
+  // Try fetching live workers from backend API
+  try {
+    if (window.LocalFixAPI) {
+      const qParams = new URLSearchParams();
+      if (category) qParams.append("category", category);
+      if (minRating > 0) qParams.append("rating", minRating);
+      if (maxPrice < 1000) qParams.append("maxPrice", maxPrice);
+      if (sort && sort !== "recommended") qParams.append("sort", sort);
+
+      const [res, stats] = await Promise.all([
+        window.LocalFixAPI.get(`/workers?${qParams.toString()}`).catch(() => null),
+        window.LocalFixAPI.get("/platform/stats").catch(() => null)
+      ]);
+
+      if (stats && typeof stats.registeredWorkers === "number") {
+        registeredWorkersCount = stats.registeredWorkers;
+      }
+
+      if (res && Array.isArray(res.workers)) {
+        workers = res.workers.map((w) => {
+          const userObj = w.userId || {};
+          const rawArea = w.serviceArea || userObj.location || "Ludhiana";
+          const rawPrice = (w.pricing && w.pricing.startingPrice) || 200;
+          return {
+            id: w._id,
+            name: userObj.name || "Verified Worker",
+            category: w.serviceCategory,
+            experience: w.experience || 1,
+            price: rawPrice,
+            rating: typeof w.rating === "number" && w.rating > 0 ? w.rating : null,
+            reviewsCount: w.totalReviews || 0,
+            area: rawArea,
+            state: resolveStateFromArea(rawArea),
+            verified: w.verificationStatus === "approved",
+            available: true,
+            skills: w.skills || [],
+            about: w.about || "",
+            completedJobs: w.completedJobs || 0
+          };
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Worker live fetch notice:", err);
+  }
+
+  // Fallback to local storage if API returned no data and local workers exist
+  if (!workers.length) {
+    const localWorkers = window.Storage.getWorkers({
+      category,
+      state: state === "all" ? "" : state,
+      area,
+      minRating,
+      maxPrice,
+      query
+    });
+    if (localWorkers && localWorkers.length) {
+      workers = localWorkers;
+    }
+  }
+
+  // Client-side area/query refinement
+  if (state && state !== "all") {
+    workers = workers.filter((w) => (w.state || "").toLowerCase() === state.toLowerCase());
+  }
+  if (area) {
+    workers = workers.filter((w) => (w.area || "").toLowerCase().includes(area.toLowerCase()));
+  }
+  if (query) {
+    workers = workers.filter((w) =>
+      (w.name || "").toLowerCase().includes(query) ||
+      (w.category || "").toLowerCase().includes(query) ||
+      (w.area || "").toLowerCase().includes(query)
+    );
+  }
 
   if (sort === "rating_desc")     workers.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
   else if (sort === "price_asc")  workers.sort((a, b) => a.price - b.price);
@@ -126,6 +209,8 @@ function applyFilters() {
       subtitleEl.textContent = category && typeof LF_SERVICE_LABELS !== "undefined" && LF_SERVICE_LABELS[category]
         ? `Showing verified ${LF_SERVICE_LABELS[category]} workers strictly matching your location.`
         : `Showing verified home service technicians available for booking.`;
+    } else if (registeredWorkersCount > 0 && workers.length === 0) {
+      subtitleEl.textContent = `There are ${registeredWorkersCount} registered technician(s) currently awaiting admin verification before they appear publicly for booking.`;
     } else {
       subtitleEl.textContent = state !== "all"
         ? `No verified workers have applied from ${state} yet for this service.`
@@ -133,11 +218,12 @@ function applyFilters() {
     }
   }
 
-  renderResults(workers, { state, area, category });
+  renderResults(workers, { state, area, category, registeredWorkersCount });
 
   if (isMapViewActive && window.LocalFixMap) {
     window.LocalFixMap.initSearchMap("searchMap", workers);
   }
+}
 }
 
 function renderResults(results, currentFilters = {}) {
@@ -156,7 +242,10 @@ function renderResults(results, currentFilters = {}) {
       let emptyTitle = "No verified workers found";
       let emptyMsg   = "No technicians found matching your criteria.";
 
-      if (state) {
+      if (currentFilters.registeredWorkersCount > 0) {
+        emptyTitle = "Worker Verification in Progress";
+        emptyMsg   = `There are <strong>${currentFilters.registeredWorkersCount}</strong> technician(s) registered on LocalFix who are currently undergoing verification. Once an application is approved by an admin, the verified profile will appear here immediately.`;
+      } else if (state) {
         emptyTitle = `No verified workers found in ${state}`;
         emptyMsg   = `No service workers have applied or registered from <strong>${state}</strong> for this category yet. Workers from other states are hidden to ensure location accuracy.`;
       } else if (area) {

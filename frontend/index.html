@@ -663,7 +663,7 @@ async function renderPlatformStatistics() {
   function updateTile(el, count, fallbackText, suffix) {
     if (!el) return;
     suffix = suffix || "";
-    if (typeof count === "number" && count > 0) {
+    if (typeof count === "number" && !isNaN(count) && count >= 0) {
       el.className = "lf-stat-big";
       var prev = el.dataset.value !== undefined ? Number(el.dataset.value) : null;
       if (prev === null) {

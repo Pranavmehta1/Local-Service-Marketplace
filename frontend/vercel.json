@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://murphy-college-characteristic-saskatchewan.trycloudflare.com/api/:path*"
+      "destination": "https://immune-sugar-thank-wins.trycloudflare.com/api/:path*"
     }
   ]
 }

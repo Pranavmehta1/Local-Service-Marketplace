@@ -28,3 +28,9 @@ Thumbs.db
 # Executables & Binaries
 *.exe
 cloudflared*
+
+# Database Backups & Dumps
+backups/
+backend/backups/
+*.dump
+*.bson
