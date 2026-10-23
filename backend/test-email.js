@@ -35,7 +35,7 @@ async function main() {
     console.error('\n📝 Required Setup Steps:');
     console.error('   1. Create or open localfix/backend/.env');
     console.error('   2. Set your official email address:');
-    console.error('      SMTP_USER=LocalFix.Official@gmail.com');
+    console.error('      SMTP_USER=fixxlocal@gmail.com');
     console.error('   3. Set your 16-character Google App Password:');
     console.error('      SMTP_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx');
     console.error('\nThen re-run: node test-email.js recipient@example.com\n');

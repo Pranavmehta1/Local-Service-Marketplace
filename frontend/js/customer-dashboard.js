@@ -145,6 +145,7 @@ function renderDisputeOrConfirm(booking) {
           <div class="d-flex gap-2 flex-wrap">
             <button class="btn btn-warning btn-sm" onclick="reopenService('${booking.id}')"><i class="bi bi-arrow-counterclockwise me-1"></i>Reopen Service Request</button>
             <a href="tel:+911800001234" class="btn btn-outline-secondary btn-sm"><i class="bi bi-headset me-1"></i>Customer Care: 1800-001-234</a>
+            <a href="mailto:fixxlocal@gmail.com?subject=Dispute%20Assistance%20Booking%20${booking.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-envelope-fill me-1"></i>Email: fixxlocal@gmail.com</a>
           </div>
         </div>
       </div>

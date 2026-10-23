@@ -83,8 +83,11 @@ function generateOtpEmailHtml({ otp, expiryMinutes = 5 }) {
           <!-- Footer -->
           <tr>
             <td style="padding: 18px 32px; background-color: #f8fafc; border-top: 1px solid #f1f5f9;">
-              <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0;">
+              <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0 0 6px 0;">
                 This is an automated account-security email from LocalFix. If you did not request this code, no action is needed.
+              </p>
+              <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0;">
+                Questions or support? Contact our official team at <a href="mailto:fixxlocal@gmail.com" style="color: #0284c7; text-decoration: none;">fixxlocal@gmail.com</a>
               </p>
             </td>
           </tr>
@@ -108,6 +111,8 @@ Your verification code is: ${cleanOtp}
 This code expires in ${expiryMinutes} minutes.
 
 Security warning: Never share this code with anyone. LocalFix will never ask you for your code.
+
+Questions or support? Contact us at fixxlocal@gmail.com
 
 This is an automated account-security email from LocalFix.`;
 }
@@ -194,7 +199,7 @@ async function sendOtpEmail({ email, otp, expiryMinutes = 5, purpose = 'login' }
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM || `"LocalFix" <no-reply@localfix.in>`,
+        from: process.env.EMAIL_FROM || `"LocalFix" <fixxlocal@gmail.com>`,
         to: [email],
         subject,
         html,
@@ -213,9 +218,27 @@ async function sendOtpEmail({ email, otp, expiryMinutes = 5, purpose = 'login' }
   throw error;
 }
 
+async function verifyEmailConfig() {
+  const { user, pass } = getSmtpConfig();
+  if (!user || !pass) {
+    return { ok: false, error: 'SMTP_USER or SMTP_APP_PASSWORD not set in environment.' };
+  }
+  const transporter = createSmtpTransporter();
+  if (!transporter) {
+    return { ok: false, error: 'Could not create SMTP transporter.' };
+  }
+  try {
+    await transporter.verify();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
 module.exports = {
   sendOtpEmail,
   generateOtpEmailHtml,
   generateOtpPlainText,
   getSmtpConfig,
+  verifyEmailConfig,
 };

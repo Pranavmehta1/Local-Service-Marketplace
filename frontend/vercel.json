@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://developing-beverages-demonstrated-thrown.trycloudflare.com/api/:path*"
+      "destination": "https://reliability-patent-underground-title.trycloudflare.com/api/:path*"
     }
   ]
 }

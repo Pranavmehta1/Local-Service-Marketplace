@@ -128,6 +128,7 @@
       "footer.admin_portal": "Admin Portal",
       "footer.rights": "All rights reserved. Built for reliable doorstep repairs.",
       "footer.helpline": "24/7 Helpline",
+      "footer.official_email": "Official Support Email: fixxlocal@gmail.com",
       "footer.need_help": "Need immediate assistance with a booking?",
 
       // Auth Page
@@ -483,6 +484,7 @@
       "footer.admin_portal": "एडमिन पोर्टल",
       "footer.rights": "सर्वाधिकार सुरक्षित। विश्वसनीय घरेलू मरम्मत के लिए निर्मित।",
       "footer.helpline": "24/7 हेल्पलाइन",
+      "footer.official_email": "आधिकारिक सहायता ईमेल: fixxlocal@gmail.com",
       "footer.need_help": "क्या आपको किसी बुकिंग में तत्काल सहायता चाहिए?",
 
       // Auth Page

@@ -173,6 +173,22 @@
           </button>
         </div>
 
+        <!-- Official Support Info Card -->
+        <div class="card border-0 mb-4" style="background: rgba(2, 132, 199, 0.08); border-left: 4px solid #0284c7 !important; border-radius: 10px;">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div>
+                <div class="fw-semibold text-primary"><i class="bi bi-headset me-2"></i>LocalFix Customer Care &amp; Support</div>
+                <div class="small text-muted mt-1">Our dedicated support desk is available 24/7 to resolve disputes, cancellations, and service queries.</div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <a href="mailto:fixxlocal@gmail.com" class="btn btn-sm btn-primary"><i class="bi bi-envelope-fill me-1"></i> fixxlocal@gmail.com</a>
+                <a href="tel:+911800001234" class="btn btn-sm btn-outline-secondary"><i class="bi bi-telephone-fill me-1"></i> 1800-001-234</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div id="complaintsListEl"></div>
         <div id="complaintsEmpty" class="d-none"></div>
       </div>
@@ -261,6 +277,9 @@
       </div>
       <form id="complaintForm">
         <div class="modal-body">
+          <div class="alert alert-info small py-2 mb-3">
+            <i class="bi bi-info-circle-fill me-1"></i> Need urgent escalation or refund assistance? You can also email our official customer care directly at <a href="mailto:fixxlocal@gmail.com" class="fw-bold text-decoration-none">fixxlocal@gmail.com</a>.
+          </div>
           <div class="mb-3">
             <label class="form-label small fw-semibold">Subject</label>
             <input type="text" class="form-control" id="complaintSubject" placeholder="e.g. Worker didn't arrive, Overcharged">

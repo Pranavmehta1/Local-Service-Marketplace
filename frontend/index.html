@@ -327,10 +327,10 @@
       </div>
       <div class="col-6 col-md-3 col-lg-2">
         <h6 class="lf-footer-heading" data-i18n="footer.quick_links">Company</h6>
-        <a href="#" class="lf-footer-link">About LocalFix</a>
-        <a href="#" class="lf-footer-link">Careers</a>
-        <a href="#" class="lf-footer-link">Privacy Policy</a>
-        <a href="#" class="lf-footer-link">Terms of Use</a>
+        <a href="#" class="lf-footer-link" data-bs-toggle="modal" data-bs-target="#aboutModal">About LocalFix</a>
+        <a href="mailto:fixxlocal@gmail.com?subject=Careers%20Inquiry%20LocalFix" class="lf-footer-link">Careers</a>
+        <a href="#" class="lf-footer-link" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a>
+        <a href="#" class="lf-footer-link" data-bs-toggle="modal" data-bs-target="#termsModal">Terms of Use</a>
       </div>
       <div class="col-6 col-md-3 col-lg-2">
         <h6 class="lf-footer-heading" data-i18n="footer.for_workers">For Workers</h6>
@@ -340,21 +340,197 @@
       </div>
       <div class="col-6 col-md-3 col-lg-2">
         <h6 class="lf-footer-heading" data-i18n="footer.helpline">Support</h6>
-        <a href="#" class="lf-footer-link">Help Center</a>
+        <a href="#" class="lf-footer-link" data-bs-toggle="modal" data-bs-target="#helpCenterModal">Help Center</a>
         <a href="tel:+911800001234" class="lf-footer-link">&#128222; 1800-001-234</a>
-        <a href="mailto:support@localfix.in" class="lf-footer-link">&#9993; support@localfix.in</a>
+        <a href="mailto:fixxlocal@gmail.com" class="lf-footer-link">&#9993; fixxlocal@gmail.com</a>
       </div>
     </div>
     <hr class="lf-footer-divider">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
       <div class="lf-footer-copy" data-i18n="footer.rights">© 2026 LocalFix. All rights reserved. Built for reliable doorstep repairs.</div>
       <div class="lf-footer-copy">
-        <a href="#" class="lf-footer-bottom-link">Privacy</a>
-        <a href="#" class="lf-footer-bottom-link ms-3">Terms</a>
+        <a href="#" class="lf-footer-bottom-link" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy</a>
+        <a href="#" class="lf-footer-bottom-link ms-3" data-bs-toggle="modal" data-bs-target="#termsModal">Terms</a>
+        <a href="mailto:fixxlocal@gmail.com" class="lf-footer-bottom-link ms-3 text-info"><i class="bi bi-envelope-fill me-1"></i>fixxlocal@gmail.com</a>
       </div>
     </div>
   </div>
 </footer>
+
+<!-- About LocalFix Modal -->
+<div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius: 14px; overflow: hidden;">
+      <div class="modal-header border-0 bg-light pb-2">
+        <h5 class="modal-title fw-bold" id="aboutModalLabel">About LocalFix</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted leading-relaxed">
+          LocalFix is North India's trusted local service marketplace connecting homeowners with verified, background-checked electricians, plumbers, AC technicians, appliance repair experts, and cleaners.
+        </p>
+        <div class="row g-3 my-2">
+          <div class="col-md-4">
+            <div class="p-3 rounded border text-center">
+              <i class="bi bi-shield-check text-success fs-3"></i>
+              <h6 class="fw-bold mt-2">100% Verified</h6>
+              <p class="small text-muted mb-0">Every worker passes identity and trade verification.</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 rounded border text-center">
+              <i class="bi bi-currency-rupee text-warning fs-3"></i>
+              <h6 class="fw-bold mt-2">Zero Commission</h6>
+              <p class="small text-muted mb-0">Direct upfront pricing with no hidden marketplace cuts.</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 rounded border text-center">
+              <i class="bi bi-headset text-primary fs-3"></i>
+              <h6 class="fw-bold mt-2">24/7 Support</h6>
+              <p class="small text-muted mb-0">Dedicated team standing by for assistance.</p>
+            </div>
+          </div>
+        </div>
+        <div class="p-3 rounded mt-3" style="background: rgba(2, 132, 199, 0.08); border-left: 4px solid #0284c7;">
+          <div class="fw-semibold text-primary"><i class="bi bi-envelope-check-fill me-2"></i>Official Contact Desk</div>
+          <p class="small text-muted mb-1 mt-1">Have business inquiries, partnership proposals, or questions? Email our official team:</p>
+          <a href="mailto:fixxlocal@gmail.com" class="fw-bold text-decoration-none fs-6">fixxlocal@gmail.com</a>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Help Center & Customer Care Modal -->
+<div class="modal fade" id="helpCenterModal" tabindex="-1" aria-labelledby="helpCenterModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius: 14px; overflow: hidden;">
+      <div class="modal-header border-0 bg-light pb-2">
+        <h5 class="modal-title fw-bold" id="helpCenterModalLabel"><i class="bi bi-headset text-primary me-2"></i>Help Center &amp; Customer Care</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="p-3 rounded border h-100">
+              <div class="fw-semibold text-dark"><i class="bi bi-envelope-at-fill text-primary me-2"></i>Official Support Email</div>
+              <p class="small text-muted mt-1 mb-2">Reach out anytime for booking help, worker issues, or billing inquiries:</p>
+              <a href="mailto:fixxlocal@gmail.com" class="fw-bold text-primary fs-6 text-decoration-none">fixxlocal@gmail.com</a>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 rounded border h-100">
+              <div class="fw-semibold text-dark"><i class="bi bi-telephone-outbound-fill text-success me-2"></i>Toll-Free Helpline</div>
+              <p class="small text-muted mt-1 mb-2">Available 24 hours a day, 7 days a week for immediate assistance:</p>
+              <a href="tel:+911800001234" class="fw-bold text-success fs-6 text-decoration-none">1800-001-234</a>
+            </div>
+          </div>
+        </div>
+
+        <h6 class="fw-bold mb-3">Frequently Asked Questions</h6>
+        <div class="accordion accordion-flush border rounded" id="faqAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                How do I track or contact my assigned technician?
+              </button>
+            </h2>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body small text-muted">
+                Once a worker accepts your booking, their direct contact number is visible on your Customer Dashboard under "Active Bookings". You can call them directly to confirm arrival time.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                What if the technician did not arrive or there is a pricing dispute?
+              </button>
+            </h2>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body small text-muted">
+                You can file a formal complaint under the "Complaints" tab in your dashboard, or email our support desk immediately at <a href="mailto:fixxlocal@gmail.com">fixxlocal@gmail.com</a> with your Booking ID.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                How do cancellations and refunds work?
+              </button>
+            </h2>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body small text-muted">
+                Visiting charges are payable only after the service is completed to your satisfaction. If you cancel before the technician arrives, zero charges apply. For dispute resolution, write to <a href="mailto:fixxlocal@gmail.com">fixxlocal@gmail.com</a>.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Privacy Policy Modal -->
+<div class="modal fade" id="privacyModal" tabindex="-1" aria-labelledby="privacyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius: 14px; overflow: hidden;">
+      <div class="modal-header border-0 bg-light pb-2">
+        <h5 class="modal-title fw-bold" id="privacyModalLabel"><i class="bi bi-shield-lock-fill text-success me-2"></i>Privacy Policy — LocalFix</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" style="max-height: 60vh; overflow-y: auto;">
+        <p class="small text-muted">Last Updated: October 2026</p>
+        <h6 class="fw-bold">1. Information We Collect</h6>
+        <p class="small text-muted">We collect your name, phone number, email address, and service location strictly for service dispatch and OTP account authentication. We never sell your personal information to third parties.</p>
+        <h6 class="fw-bold">2. Use of Account Data</h6>
+        <p class="small text-muted">Your phone number and service address are shared exclusively with the technician you choose to book, ensuring smooth doorstep service execution.</p>
+        <h6 class="fw-bold">3. Data Security &amp; Contact</h6>
+        <p class="small text-muted">All credentials and tokens are secured via industry-standard hashing and encryption. For any privacy requests, data deletion, or grievances, please email our Data Protection Officer:</p>
+        <div class="p-3 rounded bg-light border">
+          <span class="small text-muted">Email:</span> <a href="mailto:fixxlocal@gmail.com" class="fw-bold text-decoration-none">fixxlocal@gmail.com</a>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Terms of Use Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius: 14px; overflow: hidden;">
+      <div class="modal-header border-0 bg-light pb-2">
+        <h5 class="modal-title fw-bold" id="termsModalLabel"><i class="bi bi-file-text-fill text-primary me-2"></i>Terms of Service — LocalFix</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" style="max-height: 60vh; overflow-y: auto;">
+        <p class="small text-muted">Last Updated: October 2026</p>
+        <h6 class="fw-bold">1. Platform Services</h6>
+        <p class="small text-muted">LocalFix operates a direct local marketplace facilitating connections between self-employed service technicians and customers.</p>
+        <h6 class="fw-bold">2. Upfront Pricing &amp; Zero Hidden Fees</h6>
+        <p class="small text-muted">Visiting charges are clearly displayed before booking. Any additional spare parts or extensive labor costs must be mutually agreed upon before repair work begins.</p>
+        <h6 class="fw-bold">3. Dispute Resolution &amp; Grievance Redressal</h6>
+        <p class="small text-muted">In the event of an unsatisfied job or unverified charge, customers are protected by our dispute resolution policy. Contact our grievance team directly at:</p>
+        <div class="p-3 rounded bg-light border">
+          <span class="small text-muted">Official Grievance Email:</span> <a href="mailto:fixxlocal@gmail.com" class="fw-bold text-decoration-none">fixxlocal@gmail.com</a>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/storage.js?v=lf_stats_v1"></script>
