@@ -23,7 +23,7 @@ const LocalFixAPI = (() => {
     }
   };
 
-  const request = async (path, { method = 'GET', body, auth = true } = {}) => {
+  const request = async (path, { method = 'GET', body, auth = true, timeoutMs = 15000 } = {}) => {
     const headers = { 'Content-Type': 'application/json' };
     const token = getToken();
     if (auth && token) headers.Authorization = `Bearer ${token}`;
@@ -31,17 +31,26 @@ const LocalFixAPI = (() => {
     const baseUrl = getApiBaseUrl();
     const endpoint = `${baseUrl}${path}`;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     let res;
     try {
       res = await fetch(endpoint, {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
       });
     } catch (networkErr) {
+      if (networkErr.name === 'AbortError') {
+        throw new Error('Verification request timed out. Please check your internet connection and try again.');
+      }
       throw new Error(
         `Network error: Could not reach backend API at ${endpoint}. Please verify your internet connection or backend server.`
       );
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     const data = await res.json().catch(() => ({}));

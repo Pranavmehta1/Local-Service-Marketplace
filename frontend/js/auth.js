@@ -163,14 +163,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Redirect by Role ──────────────────────────────────────────────────────
   const redirectByUserRole = (user) => {
     const pendingBookingWorker = sessionStorage.getItem("redirect_to_booking");
+    const isInsidePages = window.location.pathname.includes("/pages/");
+    const prefix = isInsidePages ? "" : "pages/";
+
     if (user.role === "customer" && pendingBookingWorker) {
       sessionStorage.removeItem("redirect_to_booking");
-      window.location.href = `booking.html?worker=${pendingBookingWorker}`;
+      window.location.href = `${prefix}booking.html?worker=${pendingBookingWorker}`;
       return;
     }
-    if (user.role === "admin")  window.location.href = "admin-dashboard.html";
-    else if (user.role === "worker") window.location.href = "worker-dashboard.html";
-    else window.location.href = "customer-dashboard.html";
+    if (user.role === "admin") {
+      window.location.href = `${prefix}admin-dashboard.html`;
+    } else if (user.role === "worker") {
+      window.location.href = `${prefix}worker-dashboard.html`;
+    } else {
+      window.location.href = `${prefix}customer-dashboard.html`;
+    }
   };
 
   // ── OTP UI & Timers ───────────────────────────────────────────────────────
@@ -261,6 +268,20 @@ document.addEventListener("DOMContentLoaded", () => {
     otpError?.classList.add("d-none");
   };
 
+  let isVerifying = false;
+
+  const setVerifyingState = (verifying) => {
+    isVerifying = verifying;
+    if (btnOtpVerify) btnOtpVerify.disabled = verifying;
+    if (otpSpinner) otpSpinner.classList.toggle("d-none", !verifying);
+    if (btnOtpVerifyText) {
+      btnOtpVerifyText.textContent = verifying
+        ? t("otp.verifying", "Verifying code...")
+        : t("otp.verify_btn", "Verify & Continue");
+    }
+    otpDigits.forEach((d) => (d.disabled = verifying));
+  };
+
   const showOtpScreen = async ({ purpose, email, phone, role, userData, user }) => {
     otpState.active = true;
     otpState.purpose = purpose;
@@ -268,15 +289,19 @@ document.addEventListener("DOMContentLoaded", () => {
     otpState.email = email || "";
     otpState.phone = phone || "";
     otpState.userData = userData || null;
+    otpState.pendingUserData = userData || null;
     otpState.user = user || null;
 
     authMainFlow?.classList.add("d-none");
     otpSection?.classList.remove("d-none");
 
     clearOtpMessages();
-    otpDigits.forEach((d) => (d.value = ""));
+    setVerifyingState(false);
+    otpDigits.forEach((d) => {
+      d.value = "";
+      d.disabled = false;
+    });
     if (otpDigits[0]) otpDigits[0].focus();
-    if (btnOtpVerify) btnOtpVerify.disabled = false;
 
     updateOtpLabels();
     startExpiryCountdown(300);
@@ -286,6 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const hideOtpScreen = () => {
     otpState.active = false;
+    isVerifying = false;
     clearInterval(otpState.expiryTimer);
     clearInterval(otpState.cooldownTimer);
     otpSection?.classList.add("d-none");
@@ -352,6 +378,9 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (e.key === "ArrowRight" && idx < otpDigits.length - 1) {
         e.preventDefault();
         otpDigits[idx + 1].focus();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        handleVerifyOtp();
       }
     });
 
@@ -378,6 +407,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Handle OTP Verification ───────────────────────────────────────────────
   const handleVerifyOtp = async () => {
+    if (isVerifying) return; // Prevent duplicate concurrent in-flight requests
+
     clearOtpMessages();
     const enteredCode = Array.from(otpDigits).map((d) => d.value.trim()).join("");
 
@@ -386,69 +417,93 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (btnOtpVerify) btnOtpVerify.disabled = true;
-    if (otpSpinner) otpSpinner.classList.remove("d-none");
-    if (btnOtpVerifyText) btnOtpVerifyText.textContent = t("otp.verifying", "Verifying code...");
+    setVerifyingState(true);
 
     const identifier = otpState.type === "email" ? otpState.email : otpState.phone;
 
     try {
       if (!window.LocalFixAPI) throw new Error("LocalFixAPI client is not loaded.");
 
-      const res = await window.LocalFixAPI.post("/otp/verify", {
+      const payload = {
         identifier,
         otp: enteredCode,
         purpose: otpState.purpose,
         type: otpState.type,
-        userData: otpState.pendingUserData,
-      }, { auth: false });
+      };
+
+      const pendingData = otpState.pendingUserData || otpState.userData;
+      if (pendingData) {
+        payload.userData = pendingData;
+      }
+
+      const res = await window.LocalFixAPI.post("/otp/verify", payload, { auth: false });
 
       if (!res.verified) {
         throw new Error(res.message || t("otp.err_invalid", "Incorrect verification code. Please check and try again."));
       }
 
-      // Successful verification! Complete session
-      const user = res.user || otpState.user || (otpState.pendingUserData ? {
-        id: "u_" + Date.now(),
-        name: otpState.pendingUserData.name,
-        email: otpState.pendingUserData.email,
-        phone: otpState.pendingUserData.phone,
-        role: otpState.pendingUserData.role,
-        isVerified: true,
-        isEmailVerified: otpState.type === "email",
-        isPhoneVerified: otpState.type === "phone",
-      } : null);
-
-      if (user) {
-        user.isVerified = true;
-        if (otpState.type === "email") user.isEmailVerified = true;
-        if (otpState.type === "phone") user.isPhoneVerified = true;
-
-        if (window.Storage) {
-          try {
-            if (otpState.pendingUserData) {
-              window.Storage.registerUser({
-                ...otpState.pendingUserData,
-                isVerified: true,
-                isEmailVerified: otpState.type === "email",
-                isPhoneVerified: otpState.type === "phone",
-              });
-            }
-          } catch (e) {
-            // Already in local storage, continue
-          }
-          window.Storage.setCurrentUser(user);
-        }
-
-        if (res.token) localStorage.setItem("lf_token", res.token);
-        redirectByUserRole(user);
-        return;
+      // Successful verification! Determine authenticated user
+      let user = res.user || otpState.user;
+      if (!user && pendingData) {
+        user = {
+          id: "u_" + Date.now(),
+          name: pendingData.name,
+          email: pendingData.email,
+          phone: pendingData.phone,
+          role: pendingData.role,
+          location: pendingData.location || pendingData.serviceArea || "Model Town, Ludhiana",
+          isVerified: true,
+          isEmailVerified: otpState.type === "email",
+          isPhoneVerified: otpState.type === "phone",
+        };
       }
+
+      if (!user) {
+        throw new Error("Verification succeeded, but user account details could not be established. Please try logging in.");
+      }
+
+      user.isVerified = true;
+      if (otpState.type === "email") user.isEmailVerified = true;
+      if (otpState.type === "phone") user.isPhoneVerified = true;
+
+      // Update LocalStorage user session
+      if (window.Storage) {
+        try {
+          if (pendingData) {
+            window.Storage.registerUser({
+              ...pendingData,
+              isVerified: true,
+              isEmailVerified: otpState.type === "email",
+              isPhoneVerified: otpState.type === "phone",
+            });
+          }
+        } catch (e) {
+          // Already in local storage, continue
+        }
+        window.Storage.setCurrentUser(user);
+      }
+
+      if (res.token) {
+        localStorage.setItem("lf_token", res.token);
+      }
+
+      // Clear timers
+      clearInterval(otpState.expiryTimer);
+      clearInterval(otpState.cooldownTimer);
+
+      showOtpNotice(t("otp.verified_success", "Code verified successfully! Redirecting to dashboard..."));
+
+      setTimeout(() => {
+        redirectByUserRole(user);
+      }, 500);
+
     } catch (err) {
       showOtpError(err.message || t("otp.err_invalid", "Incorrect verification code. Please check and try again."));
-      if (btnOtpVerify) btnOtpVerify.disabled = false;
-      if (otpSpinner) otpSpinner.classList.add("d-none");
-      if (btnOtpVerifyText) btnOtpVerifyText.textContent = t("otp.verify_btn", "Verify & Continue");
+      setVerifyingState(false);
+      if (otpDigits[5]) {
+        otpDigits[5].focus();
+        otpDigits[5].select();
+      }
     }
   };
 
