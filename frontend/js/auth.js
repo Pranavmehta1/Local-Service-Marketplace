@@ -1,18 +1,40 @@
 /**
- * LocalFix Authentication Logic
- * - Inline field validation (no alert popups)
- * - Multi-user role isolation
- * - 1-second loading page screen before entering dashboard
- * - State and area aware registration
+ * LocalFix Authentication & Two-Step Verification (OTP) Controller
+ * - Multi-role session isolation (Customer & Service Worker)
+ * - Two-Step OTP Verification for Email & SMS (India & International)
+ * - 6-Digit Auto-advancing, Backspace & Paste-supporting OTP input
+ * - Dynamic 5-minute expiry countdown & 60s resend cooldown
+ * - Delivery method toggle (Email <-> SMS)
+ * - Full Hindi & English i18n support
  */
 document.addEventListener("DOMContentLoaded", () => {
   const roleButtons          = document.querySelectorAll(".lf-role-btn");
   const tabLogin             = document.getElementById("tabLogin");
   const tabRegister          = document.getElementById("tabRegister");
+  const authMainFlow         = document.getElementById("authMainFlow");
+  const otpSection           = document.getElementById("otpSection");
   const loginForm            = document.getElementById("loginForm");
   const customerRegisterForm = document.getElementById("customerRegisterForm");
   const workerRegisterForm   = document.getElementById("workerRegisterForm");
   const loginError           = document.getElementById("loginError");
+
+  // OTP DOM elements
+  const otpHeading           = document.getElementById("otpHeading");
+  const otpSubText           = document.getElementById("otpSubText");
+  const otpTargetDisplay     = document.getElementById("otpTargetDisplay");
+  const otpInputsContainer   = document.getElementById("otpInputsContainer");
+  const otpDigits            = document.querySelectorAll(".lf-otp-digit");
+  const otpCountdownEl       = document.getElementById("otpCountdown");
+  const btnOtpResend         = document.getElementById("btnOtpResend");
+  const btnOtpResendText     = document.getElementById("btnOtpResendText");
+  const btnOtpVerify         = document.getElementById("btnOtpVerify");
+  const btnOtpVerifyText     = document.getElementById("btnOtpVerifyText");
+  const otpSpinner           = document.getElementById("otpSpinner");
+  const btnOtpSwitchMethod   = document.getElementById("btnOtpSwitchMethod");
+  const btnOtpSwitchMethodText = document.getElementById("btnOtpSwitchMethodText");
+  const btnOtpBack           = document.getElementById("btnOtpBack");
+  const otpError             = document.getElementById("otpError");
+  const otpNotice            = document.getElementById("otpNotice");
 
   let currentRole = "customer";
   let currentTab  = "login";
@@ -20,6 +42,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   if (params.get("role") === "worker") currentRole = "worker";
   if (params.get("mode") === "register") currentTab = "register";
+
+  // Helper for translations
+  const t = (k, d) => (window.i18n ? window.i18n.t(k, d) : d);
+
+  // ── OTP State ─────────────────────────────────────────────────────────────
+  const otpState = {
+    active: false,
+    purpose: "login", // 'login' | 'register'
+    type: "email",    // 'email' | 'phone'
+    email: "",
+    phone: "",
+    user: null,
+    pendingUserData: null,
+    expirySeconds: 300,
+    cooldownSeconds: 60,
+    expiryTimer: null,
+    cooldownTimer: null,
+    mockOtp: null, // For offline/demo fallback
+  };
 
   // ── Inline Validation Helpers ─────────────────────────────────────────────
   const showFieldError = (inputEl, msg) => {
@@ -56,10 +97,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Role/Tab UI ───────────────────────────────────────────────────────────
   const updateRoleSpecificTexts = () => {
-    const title  = document.getElementById("authFormTitle");
-    const desc   = document.getElementById("authFormDesc");
-    const btn    = document.getElementById("loginSubmitBtn");
-    const t = (k, d) => (window.i18n ? window.i18n.t(k, d) : d);
+    const title = document.getElementById("authFormTitle");
+    const desc  = document.getElementById("authFormDesc");
+    const btn   = document.getElementById("loginSubmitBtn");
 
     if (currentTab === "login") {
       if (currentRole === "worker") {
@@ -80,7 +120,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     } else {
-      // register tab
       if (currentRole === "worker") {
         if (title) title.textContent = t("auth.reg_worker_title", "🛠️ Join as Service Worker");
         if (desc)  desc.textContent  = t("auth.reg_worker_desc", "Apply to join LocalFix's verified worker network across your state and area.");
@@ -91,7 +130,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  window.addEventListener("lf:lang-changed", updateRoleSpecificTexts);
+  window.addEventListener("lf:lang-changed", () => {
+    updateRoleSpecificTexts();
+    if (otpState.active) updateOtpLabels();
+  });
 
   const applyRoleUI = () => {
     roleButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.role === currentRole));
@@ -114,8 +156,8 @@ document.addEventListener("DOMContentLoaded", () => {
   roleButtons.forEach((btn) => {
     btn.addEventListener("click", () => { currentRole = btn.dataset.role; applyRoleUI(); applyTabUI(); });
   });
-  tabLogin.addEventListener("click",    () => { currentTab = "login";    applyTabUI(); });
-  tabRegister.addEventListener("click", () => { currentTab = "register"; applyTabUI(); });
+  tabLogin?.addEventListener("click",    () => { currentTab = "login";    applyTabUI(); });
+  tabRegister?.addEventListener("click", () => { currentTab = "register"; applyTabUI(); });
 
   applyRoleUI();
   applyTabUI();
@@ -133,8 +175,335 @@ document.addEventListener("DOMContentLoaded", () => {
     else window.location.href = "customer-dashboard.html";
   };
 
-  // ── Login Form ───────────────────────────────────────────────────────────
-  loginForm?.addEventListener("submit", (e) => {
+  // ── OTP UI & Timers ───────────────────────────────────────────────────────
+  const updateOtpLabels = () => {
+    if (!otpState.active) return;
+    const isEmail = otpState.type === "email";
+    if (otpSubText) {
+      otpSubText.textContent = isEmail
+        ? t("otp.sent_to_email", "We sent a 6-digit verification code to your email")
+        : t("otp.sent_to_phone", "We sent a 6-digit SMS verification code to your phone");
+    }
+    if (otpTargetDisplay) {
+      otpTargetDisplay.textContent = isEmail ? otpState.email : (otpState.phone || "your mobile number");
+    }
+    if (btnOtpSwitchMethodText) {
+      btnOtpSwitchMethodText.textContent = isEmail
+        ? t("otp.switch_to_phone", "Send code via SMS to phone instead")
+        : t("otp.switch_to_email", "Send code to email instead");
+    }
+    // Only show switch method if the other contact info is available
+    if (btnOtpSwitchMethod) {
+      const hasOther = isEmail ? !!otpState.phone : !!otpState.email;
+      btnOtpSwitchMethod.parentElement?.classList.toggle("d-none", !hasOther);
+    }
+  };
+
+  const startExpiryCountdown = (seconds = 300) => {
+    clearInterval(otpState.expiryTimer);
+    otpState.expirySeconds = seconds;
+    const update = () => {
+      const m = Math.floor(otpState.expirySeconds / 60);
+      const s = otpState.expirySeconds % 60;
+      if (otpCountdownEl) {
+        otpCountdownEl.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      }
+      if (otpState.expirySeconds <= 0) {
+        clearInterval(otpState.expiryTimer);
+        showOtpError(t("otp.err_expired", "This verification code has expired. Please request a new code."));
+        if (btnOtpVerify) btnOtpVerify.disabled = true;
+      }
+      otpState.expirySeconds -= 1;
+    };
+    update();
+    otpState.expiryTimer = setInterval(update, 1000);
+  };
+
+  const startCooldownTimer = (seconds = 60) => {
+    clearInterval(otpState.cooldownTimer);
+    otpState.cooldownSeconds = seconds;
+    if (btnOtpResend) btnOtpResend.disabled = true;
+
+    const update = () => {
+      if (otpState.cooldownSeconds <= 0) {
+        clearInterval(otpState.cooldownTimer);
+        if (btnOtpResend) btnOtpResend.disabled = false;
+        if (btnOtpResendText) btnOtpResendText.textContent = t("otp.resend_code", "Resend Code");
+      } else {
+        if (btnOtpResendText) {
+          btnOtpResendText.textContent = `${t("otp.resend_in", "Resend in")} ${otpState.cooldownSeconds}s`;
+        }
+        otpState.cooldownSeconds -= 1;
+      }
+    };
+    update();
+    otpState.cooldownTimer = setInterval(update, 1000);
+  };
+
+  const showOtpError = (msg) => {
+    if (!otpError) return;
+    otpError.textContent = msg;
+    otpError.classList.remove("d-none");
+    otpNotice?.classList.add("d-none");
+    if (otpInputsContainer) {
+      otpInputsContainer.classList.remove("lf-otp-shake");
+      void otpInputsContainer.offsetWidth; // re-trigger reflow
+      otpInputsContainer.classList.add("lf-otp-shake");
+    }
+  };
+
+  const clearOtpMessages = () => {
+    otpError?.classList.add("d-none");
+    otpNotice?.classList.add("d-none");
+  };
+
+  const showOtpNotice = (msg) => {
+    if (!otpNotice) return;
+    otpNotice.textContent = msg;
+    otpNotice.classList.remove("d-none");
+    otpError?.classList.add("d-none");
+  };
+
+  const showOtpScreen = async ({ purpose, email, phone, role, userData, user }) => {
+    otpState.active = true;
+    otpState.purpose = purpose;
+    otpState.type = "email";
+    otpState.email = email || "";
+    otpState.phone = phone || "";
+    otpState.userData = userData || null;
+    otpState.user = user || null;
+    otpState.mockOtp = null;
+
+    authMainFlow?.classList.add("d-none");
+    otpSection?.classList.remove("d-none");
+
+    clearOtpMessages();
+    otpDigits.forEach((d) => (d.value = ""));
+    if (otpDigits[0]) otpDigits[0].focus();
+    if (btnOtpVerify) btnOtpVerify.disabled = false;
+
+    updateOtpLabels();
+    startExpiryCountdown(300);
+    startCooldownTimer(60);
+
+    await dispatchSendOtp();
+  };
+
+  const hideOtpScreen = () => {
+    otpState.active = false;
+    clearInterval(otpState.expiryTimer);
+    clearInterval(otpState.cooldownTimer);
+    otpSection?.classList.add("d-none");
+    authMainFlow?.classList.remove("d-none");
+    clearOtpMessages();
+  };
+
+  // ── Dispatch OTP Send (API with Offline Fallback) ─────────────────────────
+  const dispatchSendOtp = async () => {
+    const isEmail = otpState.type === "email";
+    const identifier = isEmail ? otpState.email : otpState.phone;
+
+    clearOtpMessages();
+    if (btnOtpResendText) btnOtpResendText.textContent = t("otp.resending", "Sending code...");
+
+    try {
+      if (window.LocalFixAPI) {
+        const res = await window.LocalFixAPI.post("/otp/send", {
+          identifier,
+          type: otpState.type,
+          purpose: otpState.purpose,
+          role: currentRole,
+        }, { auth: false });
+
+        showOtpNotice(res.message || `Verification code sent to ${identifier}`);
+        startCooldownTimer(res.cooldownSeconds || 60);
+        return;
+      }
+      throw new Error("LocalFixAPI client not initialized");
+    } catch (err) {
+      // Check if backend returned a provider configuration notice
+      if (err.message && (err.message.includes("configured") || err.message.includes("503") || err.message.includes("Failed to fetch"))) {
+        // Fallback for development / mock preview if live delivery credentials are absent
+        const demoOtp = String(Math.floor(100000 + Math.random() * 900000));
+        otpState.mockOtp = demoOtp;
+        console.warn(`[LocalFix OTP Demo Mode] Delivery provider unconfigured or backend offline. Demo verification OTP is: ${demoOtp}`);
+        showOtpNotice(
+          `Demo mode: Provider not configured in .env. Your demo verification code is ${demoOtp} (Backend setup: configure RESEND_API_KEY or MSG91).`
+        );
+        startCooldownTimer(60);
+      } else {
+        showOtpError(err.message || "Failed to dispatch verification code.");
+      }
+    }
+  };
+
+  // ── 6-Digit Auto-advance, Backspace & Paste Event Listeners ───────────────
+  otpDigits.forEach((digitInput, idx) => {
+    // Input handling
+    digitInput.addEventListener("input", (e) => {
+      const val = e.target.value.replace(/\D/g, "");
+      e.target.value = val ? val[val.length - 1] : "";
+      clearOtpMessages();
+
+      if (e.target.value && idx < otpDigits.length - 1) {
+        otpDigits[idx + 1].focus();
+        otpDigits[idx + 1].select();
+      }
+
+      // If all 6 digits filled, auto-verify
+      const enteredCode = Array.from(otpDigits).map((d) => d.value).join("");
+      if (enteredCode.length === 6) {
+        handleVerifyOtp();
+      }
+    });
+
+    // Keyboard navigation (Backspace & Arrows)
+    digitInput.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace") {
+        if (!e.target.value && idx > 0) {
+          otpDigits[idx - 1].focus();
+          otpDigits[idx - 1].value = "";
+        }
+      } else if (e.key === "ArrowLeft" && idx > 0) {
+        e.preventDefault();
+        otpDigits[idx - 1].focus();
+      } else if (e.key === "ArrowRight" && idx < otpDigits.length - 1) {
+        e.preventDefault();
+        otpDigits[idx + 1].focus();
+      }
+    });
+
+    // Paste handling
+    digitInput.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData("text").trim();
+      const cleanDigits = pasted.replace(/\D/g, "").slice(0, 6);
+      if (!cleanDigits) return;
+
+      cleanDigits.split("").forEach((char, i) => {
+        if (otpDigits[i]) otpDigits[i].value = char;
+      });
+
+      const nextFocus = Math.min(cleanDigits.length, otpDigits.length - 1);
+      if (otpDigits[nextFocus]) otpDigits[nextFocus].focus();
+
+      if (cleanDigits.length === 6) {
+        handleVerifyOtp();
+      }
+    });
+
+    // Focus selection
+    digitInput.addEventListener("focus", () => digitInput.select());
+  });
+
+  // ── Handle OTP Verification ───────────────────────────────────────────────
+  const handleVerifyOtp = async () => {
+    clearOtpMessages();
+    const enteredCode = Array.from(otpDigits).map((d) => d.value.trim()).join("");
+
+    if (enteredCode.length !== 6) {
+      showOtpError(t("otp.err_incomplete", "Please enter all 6 digits of your verification code."));
+      return;
+    }
+
+    if (btnOtpVerify) btnOtpVerify.disabled = true;
+    if (otpSpinner) otpSpinner.classList.remove("d-none");
+    if (btnOtpVerifyText) btnOtpVerifyText.textContent = t("otp.verifying", "Verifying code...");
+
+    const identifier = otpState.type === "email" ? otpState.email : otpState.phone;
+
+    try {
+      let verified = false;
+      let sessionUser = null;
+      let authToken = null;
+
+      // Check if backend API is responsive
+      if (window.LocalFixAPI) {
+        try {
+          const res = await window.LocalFixAPI.post("/otp/verify", {
+            identifier,
+            otp: enteredCode,
+            purpose: otpState.purpose,
+            type: otpState.type,
+          }, { auth: false });
+
+          if (res.verified) {
+            verified = true;
+            sessionUser = res.user;
+            authToken = res.token;
+          }
+        } catch (apiErr) {
+          // If demo mock OTP matches fallback
+          if (otpState.mockOtp && enteredCode === otpState.mockOtp) {
+            verified = true;
+          } else {
+            throw apiErr;
+          }
+        }
+      } else if (otpState.mockOtp && enteredCode === otpState.mockOtp) {
+        verified = true;
+      }
+
+      if (!verified) {
+        throw new Error(t("otp.err_invalid", "Incorrect verification code. Please check and try again."));
+      }
+
+      // Successful verification! Complete session
+      if (otpState.purpose === "login") {
+        const loggedUser = sessionUser || otpState.user;
+        if (loggedUser) {
+          loggedUser.isVerified = true;
+          if (otpState.type === "email") loggedUser.isEmailVerified = true;
+          if (otpState.type === "phone") loggedUser.isPhoneVerified = true;
+
+          if (window.Storage) window.Storage.setCurrentUser(loggedUser);
+          if (authToken) localStorage.setItem("lf_token", authToken);
+          redirectByUserRole(loggedUser);
+        }
+      } else {
+        // Registration verification
+        if (otpState.pendingUserData) {
+          const registered = window.Storage.registerUser({
+            ...otpState.pendingUserData,
+            isVerified: true,
+            isEmailVerified: otpState.type === "email",
+            isPhoneVerified: otpState.type === "phone",
+          });
+          redirectByUserRole(registered);
+        }
+      }
+    } catch (err) {
+      showOtpError(err.message || t("otp.err_invalid", "Incorrect verification code. Please check and try again."));
+      if (btnOtpVerify) btnOtpVerify.disabled = false;
+      if (otpSpinner) otpSpinner.classList.add("d-none");
+      if (btnOtpVerifyText) btnOtpVerifyText.textContent = t("otp.verify_btn", "Verify & Continue");
+    }
+  };
+
+  btnOtpVerify?.addEventListener("click", handleVerifyOtp);
+
+  // Resend Button
+  btnOtpResend?.addEventListener("click", () => {
+    if (btnOtpResend.disabled) return;
+    dispatchSendOtp();
+  });
+
+  // Switch Delivery Method (Email <-> SMS)
+  btnOtpSwitchMethod?.addEventListener("click", () => {
+    otpState.type = otpState.type === "email" ? "phone" : "email";
+    updateOtpLabels();
+    otpDigits.forEach((d) => (d.value = ""));
+    if (otpDigits[0]) otpDigits[0].focus();
+    dispatchSendOtp();
+  });
+
+  // Back Button / Change Contact Info
+  btnOtpBack?.addEventListener("click", () => {
+    hideOtpScreen();
+  });
+
+  // ── Login Form Submission ────────────────────────────────────────────────
+  loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const emailEl    = document.getElementById("loginEmail");
     const passwordEl = document.getElementById("loginPassword");
@@ -148,19 +517,64 @@ document.addEventListener("DOMContentLoaded", () => {
       { el: passwordEl, msg: "Please enter your password." },
     ])) return;
 
-    try {
-      const user = window.Storage.loginUser(emailEl.value.trim(), passwordEl.value);
+    const email = emailEl.value.trim().toLowerCase();
+    const password = passwordEl.value;
 
-      if (currentRole === "worker" && user.role === "customer") {
-        showFieldError(emailEl, "This email belongs to a Customer account. Please switch to 'Customer Account' above or use a worker account (e.g. rahul@localfix.com).");
+    try {
+      // 1. Try backend API login if available
+      let matchedUser = null;
+      let requireOtp = true;
+
+      if (window.LocalFixAPI) {
+        try {
+          const res = await window.LocalFixAPI.post("/auth/login", { email, password }, { auth: false });
+          if (res.requireOtp) {
+            matchedUser = res.user;
+            requireOtp = true;
+          } else if (res.token && res.user) {
+            // Direct login without OTP if server returned token
+            window.Storage.setCurrentUser(res.user);
+            localStorage.setItem("lf_token", res.token);
+            redirectByUserRole(res.user);
+            return;
+          }
+        } catch (apiErr) {
+          // If backend returned explicit 401 or role error, show field error
+          if (apiErr.message && !apiErr.message.includes("Failed to fetch")) {
+            showFieldError(emailEl, apiErr.message);
+            return;
+          }
+        }
+      }
+
+      // 2. Local storage verification check
+      if (!matchedUser) {
+        const users = window.Storage.getUsers();
+        matchedUser = users.find((u) => u.email.toLowerCase() === email && u.password === password);
+        if (!matchedUser) {
+          showFieldError(emailEl, "Incorrect email or password. Please try again.");
+          return;
+        }
+      }
+
+      // Check role match
+      if (currentRole === "worker" && matchedUser.role === "customer") {
+        showFieldError(emailEl, "This email belongs to a Customer account. Please switch to 'Customer Account' above.");
         return;
       }
-      if (currentRole === "customer" && user.role === "worker") {
+      if (currentRole === "customer" && matchedUser.role === "worker") {
         showFieldError(emailEl, "This email belongs to a Service Worker account. Please switch to 'Service Worker' above.");
         return;
       }
 
-      redirectByUserRole(user);
+      // Transition to OTP verification screen
+      showOtpScreen({
+        purpose: "login",
+        email: matchedUser.email,
+        phone: matchedUser.phone,
+        role: currentRole,
+        user: matchedUser,
+      });
     } catch (err) {
       showFieldError(emailEl, err.message);
     }
@@ -190,20 +604,34 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    try {
-      const user = window.Storage.registerUser({
-        name:     nameEl.value.trim(),
-        email:    emailEl.value.trim(),
-        phone:    phoneEl.value.trim(),
-        password: passwordEl.value,
-        role:     "customer",
-        state:    stateEl?.value || "Punjab",
-        location: locationEl?.value.trim() || "Model Town, Ludhiana",
-      });
-      redirectByUserRole(user);
-    } catch (err) {
-      showFieldError(emailEl, err.message);
+    const email = emailEl.value.trim().toLowerCase();
+    const phone = phoneEl.value.trim();
+
+    // Check existing
+    const users = window.Storage.getUsers();
+    if (users.find((u) => u.email.toLowerCase() === email)) {
+      showFieldError(emailEl, "An account with this email already exists.");
+      return;
     }
+
+    const pendingUserData = {
+      name:     nameEl.value.trim(),
+      email,
+      phone,
+      password: passwordEl.value,
+      role:     "customer",
+      state:    stateEl?.value || "Punjab",
+      location: locationEl?.value.trim() || "Model Town, Ludhiana",
+    };
+
+    // Transition to OTP verification step
+    showOtpScreen({
+      purpose: "register",
+      email,
+      phone,
+      role: "customer",
+      userData: pendingUserData,
+    });
   });
 
   // ── Worker Registration ───────────────────────────────────────────────────
@@ -236,23 +664,36 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    try {
-      const user = window.Storage.registerUser({
-        name:       nameEl?.value.trim(),
-        email:      emailEl?.value.trim(),
-        phone:      phoneEl?.value.trim(),
-        password:   passwordEl?.value,
-        role:       "worker",
-        category:   categoryEl?.value || "electrician",
-        experience: expEl?.value || "1",
-        state:      stateEl?.value || "Punjab",
-        location:   areaEl?.value.trim() || "Model Town, Ludhiana",
-        price:      priceEl?.value || "200",
-        skills:     skillsEl?.value || "",
-      });
-      redirectByUserRole(user);
-    } catch (err) {
-      showFieldError(emailEl, err.message);
+    const email = emailEl.value.trim().toLowerCase();
+    const phone = phoneEl.value.trim();
+
+    const users = window.Storage.getUsers();
+    if (users.find((u) => u.email.toLowerCase() === email)) {
+      showFieldError(emailEl, "An account with this email already exists.");
+      return;
     }
+
+    const pendingUserData = {
+      name:       nameEl.value.trim(),
+      email,
+      phone,
+      password:   passwordEl.value,
+      role:       "worker",
+      category:   categoryEl?.value || "electrician",
+      experience: expEl?.value || "1",
+      state:      stateEl?.value || "Punjab",
+      location:   areaEl?.value.trim() || "Model Town, Ludhiana",
+      price:      priceEl?.value || "200",
+      skills:     skillsEl?.value || "",
+    };
+
+    // Transition to OTP verification step
+    showOtpScreen({
+      purpose: "register",
+      email,
+      phone,
+      role: "worker",
+      userData: pendingUserData,
+    });
   });
 });

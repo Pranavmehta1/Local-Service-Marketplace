@@ -12,6 +12,7 @@ const complaintRoutes = require('./routes/complaintRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const otpRoutes = require('./routes/otpRoutes');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api/complaints', complaintRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/otp', otpRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

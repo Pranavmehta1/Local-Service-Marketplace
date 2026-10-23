@@ -154,6 +154,9 @@ const LocalFixStorage = (() => {
         experience: userData.experience || undefined,
         price: userData.price || undefined,
         verificationStatus: userData.role === "worker" ? "pending" : "approved",
+        isVerified: !!userData.isVerified,
+        isEmailVerified: !!userData.isEmailVerified,
+        isPhoneVerified: !!userData.isPhoneVerified,
         createdAt: new Date().toISOString().split("T")[0],
       };
       users.push(newUser);

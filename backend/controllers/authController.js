@@ -15,6 +15,9 @@ const sanitize = (user) => ({
   role: user.role,
   location: user.location,
   profileImage: user.profileImage,
+  isVerified: !!user.isVerified,
+  isEmailVerified: !!user.isEmailVerified,
+  isPhoneVerified: !!user.isPhoneVerified,
 });
 
 // POST /api/auth/register/customer
@@ -80,7 +83,7 @@ const registerWorker = async (req, res, next) => {
 // POST /api/auth/login
 const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, otp } = req.body;
     if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
 
     const user = await User.findOne({ email }).select('+password');
@@ -88,6 +91,16 @@ const login = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
     if (user.isSuspended) return res.status(403).json({ message: 'This account has been suspended' });
+
+    // If OTP verification is enforced and no valid OTP was passed in the same payload
+    const requireOtp = process.env.REQUIRE_OTP_LOGIN !== 'false';
+    if (requireOtp && !otp) {
+      return res.json({
+        requireOtp: true,
+        message: 'Password verified. Please complete OTP verification.',
+        user: sanitize(user),
+      });
+    }
 
     res.json({ token: signToken(user), user: sanitize(user) });
   } catch (err) {

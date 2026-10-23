@@ -11,6 +11,9 @@ const userSchema = new mongoose.Schema(
     location: { type: String, default: '' },
     profileImage: { type: String, default: '' },
     isSuspended: { type: Boolean, default: false },
+    isVerified: { type: Boolean, default: false },
+    isEmailVerified: { type: Boolean, default: false },
+    isPhoneVerified: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
