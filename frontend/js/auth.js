@@ -184,10 +184,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const updateOtpLabels = () => {
     if (!otpState.active) return;
     const isEmail = otpState.type === "email";
+    if (otpHeading) {
+      otpHeading.textContent = t("otp.title_signup", "Verify Your Account");
+    }
     if (otpSubText) {
       otpSubText.textContent = isEmail
-        ? t("otp.sent_to_email", "We sent a 6-digit verification code to your email")
-        : t("otp.sent_to_phone", "We sent a 6-digit SMS verification code to your phone");
+        ? t("otp.sent_to_email", "We sent a 6-digit verification code to your email to activate your account.")
+        : t("otp.sent_to_phone", "We sent a 6-digit SMS verification code to your phone to activate your account.");
     }
     if (otpTargetDisplay) {
       otpTargetDisplay.textContent = isEmail ? otpState.email : (otpState.phone || "your phone");
@@ -547,30 +550,39 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
+    const loginSubmitBtn = document.getElementById("loginSubmitBtn");
+    const originalBtnText = loginSubmitBtn ? loginSubmitBtn.textContent : "Sign In";
+
+    if (loginSubmitBtn) {
+      loginSubmitBtn.disabled = true;
+      loginSubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Signing in...';
+    }
+
     try {
       let matchedUser = null;
+      let token = null;
 
-      // Call backend API login
+      // 1. Call backend API login
       if (window.LocalFixAPI) {
         try {
           const res = await window.LocalFixAPI.post("/auth/login", { email, password }, { auth: false });
-          if (res.requireOtp) {
+          if (res.token && res.user) {
             matchedUser = res.user;
-          } else if (res.token && res.user) {
-            window.Storage.setCurrentUser(res.user);
-            localStorage.setItem("lf_token", res.token);
-            redirectByUserRole(res.user);
-            return;
+            token = res.token;
           }
         } catch (apiErr) {
-          if (apiErr.message && !apiErr.message.includes("Cannot connect")) {
+          if (apiErr.status === 401 || apiErr.status === 403) {
+            showFieldError(emailEl, apiErr.message || "Invalid email or password.");
+            return;
+          }
+          if (apiErr.message && !apiErr.message.includes("Cannot connect") && !apiErr.message.includes("Network error")) {
             showFieldError(emailEl, apiErr.message);
             return;
           }
         }
       }
 
-      // Check local storage fallback for user info
+      // 2. Check local storage fallback for user info (offline fallback)
       if (!matchedUser) {
         const users = window.Storage.getUsers();
         matchedUser = users.find((u) => u.email.toLowerCase() === email && u.password === password);
@@ -578,9 +590,13 @@ document.addEventListener("DOMContentLoaded", () => {
           showFieldError(emailEl, "Incorrect email or password. Please try again.");
           return;
         }
+        if (!matchedUser.isVerified && matchedUser.role !== "admin") {
+          showFieldError(emailEl, "Your account is not verified yet. Please complete signup email verification.");
+          return;
+        }
       }
 
-      // Role mismatch checks
+      // 3. Role mismatch checks
       if (currentRole === "worker" && matchedUser.role === "customer") {
         showFieldError(emailEl, "This email belongs to a Customer account. Please switch to 'Customer Account' above.");
         return;
@@ -590,16 +606,20 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // Transition to OTP verification screen
-      showOtpScreen({
-        purpose: "login",
-        email: matchedUser.email,
-        phone: matchedUser.phone,
-        role: currentRole,
-        user: matchedUser,
-      });
+      // 4. Authenticated! Save session and redirect directly to dashboard — NO OTP
+      window.Storage.setCurrentUser(matchedUser);
+      if (token) {
+        localStorage.setItem("lf_token", token);
+      }
+      redirectByUserRole(matchedUser);
+
     } catch (err) {
-      showFieldError(emailEl, err.message);
+      showFieldError(emailEl, err.message || "Sign in failed. Please try again.");
+    } finally {
+      if (loginSubmitBtn) {
+        loginSubmitBtn.disabled = false;
+        loginSubmitBtn.textContent = originalBtnText;
+      }
     }
   });
 

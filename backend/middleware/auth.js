@@ -17,6 +17,9 @@ const protect = async (req, res, next) => {
     const user = await User.findById(decoded.id);
     if (!user) return res.status(401).json({ message: 'User no longer exists' });
     if (user.isSuspended) return res.status(403).json({ message: 'Account suspended' });
+    if (!user.isVerified && user.role !== 'admin') {
+      return res.status(403).json({ message: 'Account is not verified' });
+    }
 
     req.user = user; // trusted, server-verified identity for this request
     next();

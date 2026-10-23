@@ -10,6 +10,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const user = window.Storage.getCurrentUser();
   if (!user) { window.location.href = "auth.html"; return; }
+  if (!user.isVerified && user.role !== "admin") { window.location.href = "auth.html"; return; }
   if (user.role === "worker") { window.location.href = "worker-dashboard.html"; return; }
   if (user.role === "admin")  { window.location.href = "admin-dashboard.html"; return; }
 

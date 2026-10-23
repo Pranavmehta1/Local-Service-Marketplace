@@ -158,7 +158,6 @@ const login = async (req, res, next) => {
   try {
     const email = (req.body.email || '').trim().toLowerCase();
     const password = req.body.password;
-    const otp = req.body.otp;
 
     if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
 
@@ -168,15 +167,15 @@ const login = async (req, res, next) => {
     }
     if (user.isSuspended) return res.status(403).json({ message: 'This account has been suspended' });
 
-    const requireOtp = process.env.REQUIRE_OTP_LOGIN !== 'false';
-    if (requireOtp && !otp) {
-      return res.json({
-        requireOtp: true,
-        message: 'Password verified. Please complete OTP verification.',
-        user: sanitize(user),
+    // Block unverified accounts from logging in
+    if (!user.isVerified && user.role !== 'admin') {
+      return res.status(403).json({
+        message: 'Your account is not verified yet. Please complete signup email verification to activate your account.',
+        isUnverified: true,
       });
     }
 
+    // Normal sign-in: immediate session generation without OTP
     res.json({ token: signToken(user), user: sanitize(user) });
   } catch (err) {
     next(err);
