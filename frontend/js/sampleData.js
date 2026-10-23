@@ -269,27 +269,32 @@ function lfShowToast(message, type = 'success') {
     container = document.createElement('div');
     container.id = 'lfToastContainer';
     container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-    container.style.zIndex = '9999';
+    container.style.zIndex = '99999';
     document.body.appendChild(container);
   }
 
   const toastId = 'toast_' + Date.now();
-  const icon = type === 'success' ? 'bi-check-circle-fill text-success' : type === 'danger' ? 'bi-exclamation-triangle-fill text-danger' : 'bi-info-circle-fill text-primary';
-  
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const typeClass = type === 'danger' ? 'lf-toast-danger' : type === 'warning' ? 'lf-toast-warning' : type === 'info' ? 'lf-toast-info' : 'lf-toast-success';
+  const icon = type === 'danger' ? 'bi-exclamation-triangle-fill' : type === 'warning' ? 'bi-exclamation-circle-fill' : type === 'info' ? 'bi-info-circle-fill' : 'bi-check-circle-fill';
+  const closeBtnClass = isDark ? 'btn-close btn-close-white me-2 m-auto' : 'btn-close me-2 m-auto';
+
   const toastHtml = `
-    <div id="${toastId}" class="toast align-items-center text-bg-white border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body d-flex align-items-center gap-2">
-          <i class="bi ${icon} fs-5"></i>
-          <div>${message}</div>
+    <div id="${toastId}" class="toast align-items-center lf-toast ${typeClass} shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex align-items-center p-2">
+        <div class="toast-body d-flex align-items-center gap-3 py-1 px-2 flex-grow-1">
+          <div class="lf-toast-icon-wrap">
+            <i class="bi ${icon}"></i>
+          </div>
+          <div class="lf-toast-message">${message}</div>
         </div>
-        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        <button type="button" class="${closeBtnClass}" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     </div>
   `;
   container.insertAdjacentHTML('beforeend', toastHtml);
   const toastEl = document.getElementById(toastId);
-  const bsToast = new bootstrap.Toast(toastEl, { delay: 3500 });
+  const bsToast = new bootstrap.Toast(toastEl, { delay: 4500 });
   bsToast.show();
   toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
 }
