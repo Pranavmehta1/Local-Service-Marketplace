@@ -1,28 +1,16 @@
 /**
  * LocalFix API Client
- * Thin fetch wrapper around the LocalFix backend.
- * Attaches the JWT (if the user is logged in) to every request and
- * throws an Error with the server's descriptive message on failure.
- *
- * Automatically detects same-origin /api when accessed via http://localhost:5000
+ * Uses relative '/api' so requests always match the current origin
+ * Works seamlessly on both http://localhost:5000 and https://*.vercel.app
  */
-const DEFAULT_API_URL = 'http://localhost:5000/api';
-
 const getApiBaseUrl = () => {
   try {
     if (window.LOCALFIX_API_URL) return window.LOCALFIX_API_URL;
     const stored = localStorage.getItem('lf_api_url');
     if (stored) return stored;
-
-    if (typeof window !== 'undefined' && window.location) {
-      const hostname = window.location.hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return `${window.location.origin}/api`;
-      }
-    }
-    return DEFAULT_API_URL;
+    return '/api';
   } catch {
-    return DEFAULT_API_URL;
+    return '/api';
   }
 };
 
@@ -41,21 +29,18 @@ const LocalFixAPI = (() => {
     if (auth && token) headers.Authorization = `Bearer ${token}`;
 
     const baseUrl = getApiBaseUrl();
+    const endpoint = `${baseUrl}${path}`;
+
     let res;
     try {
-      res = await fetch(`${baseUrl}${path}`, {
+      res = await fetch(endpoint, {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch (networkErr) {
-      if (window.location && window.location.protocol === 'https:' && baseUrl.startsWith('http:')) {
-        throw new Error(
-          'Browser Mixed Content Block: HTTPS Vercel cannot reach your local HTTP backend. Open http://localhost:5000/pages/auth.html instead.'
-        );
-      }
       throw new Error(
-        `Cannot connect to LocalFix backend at ${baseUrl}. Ensure backend server is running (node server.js on port 5000).`
+        `Network error: Could not reach backend API at ${endpoint}. Please verify your internet connection or backend server.`
       );
     }
 
