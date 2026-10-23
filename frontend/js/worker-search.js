@@ -9,22 +9,50 @@
 let currentSearchResults = [];
 let isMapViewActive = false;
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Populate categories
+const DEFAULT_CATEGORIES = [
+  { id: "electrician", name: "Electrician" },
+  { id: "plumber", name: "Plumber" },
+  { id: "ac_repair", name: "AC Repair" },
+  { id: "ro_repair", name: "RO Repair" },
+  { id: "carpenter", name: "Carpenter" },
+  { id: "cleaning", name: "Home Cleaning" },
+  { id: "appliance_repair", name: "Appliance Repair" }
+];
+
+async function populateCategoryDropdown() {
   const categorySelect = document.getElementById("filterCategory");
-  if (categorySelect && typeof LF_SERVICES !== "undefined") {
-    categorySelect.innerHTML = '<option value="">All Services</option>' +
-      LF_SERVICES.map((s) => `<option value="${s.id}">${s.name}</option>`).join("");
-  }
+  if (!categorySelect) return;
+
+  let categories = (typeof LF_SERVICES !== "undefined" && Array.isArray(LF_SERVICES) && LF_SERVICES.length)
+    ? LF_SERVICES
+    : DEFAULT_CATEGORIES;
+
+  try {
+    if (window.LocalFixAPI) {
+      const res = await window.LocalFixAPI.get("/workers/categories").catch(() => null);
+      if (res && Array.isArray(res.categories) && res.categories.length) {
+        categories = res.categories;
+      }
+    }
+  } catch (_) {}
+
+  const currentVal = categorySelect.value;
+  categorySelect.innerHTML = '<option value="">All Services</option>' +
+    categories.map((s) => `<option value="${s.id}">${s.name}</option>`).join("");
+
+  const params = new URLSearchParams(window.location.search);
+  const initialCategory = params.get("category") || currentVal || "";
+  if (initialCategory) categorySelect.value = initialCategory;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  populateCategoryDropdown();
 
   // Read URL search params
   const params = new URLSearchParams(window.location.search);
-  const initialCategory = params.get("category") || "";
-  const initialState    = params.get("state") || "";
-  const initialArea     = params.get("area") || params.get("loc") || "";
-  const initialQuery    = params.get("q") || params.get("query") || "";
-
-  if (categorySelect && initialCategory) categorySelect.value = initialCategory;
+  const initialState = params.get("state") || "";
+  const initialArea  = params.get("area") || params.get("loc") || "";
+  const initialQuery = params.get("q") || params.get("query") || "";
 
   const stateSelect = document.getElementById("filterState");
   if (stateSelect && initialState) stateSelect.value = initialState;
@@ -223,7 +251,6 @@ async function applyFilters() {
   if (isMapViewActive && window.LocalFixMap) {
     window.LocalFixMap.initSearchMap("searchMap", workers);
   }
-}
 }
 
 function renderResults(results, currentFilters = {}) {

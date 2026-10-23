@@ -1,6 +1,20 @@
 const Worker = require('../models/Worker');
 const Review = require('../models/Review');
 
+// GET /api/workers/categories
+const getCategories = (req, res) => {
+  const categories = [
+    { id: 'electrician', name: 'Electrician', icon: 'bi-lightning-charge-fill' },
+    { id: 'plumber', name: 'Plumber', icon: 'bi-wrench-adjustable' },
+    { id: 'ac_repair', name: 'AC Repair', icon: 'bi-snow' },
+    { id: 'ro_repair', name: 'RO Repair', icon: 'bi-droplet-fill' },
+    { id: 'carpenter', name: 'Carpenter', icon: 'bi-hammer' },
+    { id: 'cleaning', name: 'Home Cleaning', icon: 'bi-stars' },
+    { id: 'appliance_repair', name: 'Appliance Repair', icon: 'bi-cpu-fill' },
+  ];
+  res.json({ success: true, count: categories.length, categories });
+};
+
 // GET /api/workers?category=&rating=&maxPrice=&sort=
 // Public: only ever returns admin-approved workers.
 const listWorkers = async (req, res, next) => {
@@ -81,4 +95,4 @@ const getWorkerReviews = async (req, res, next) => {
   }
 };
 
-module.exports = { listWorkers, getWorker, updateOwnProfile, updateAvailability, getWorkerReviews };
+module.exports = { getCategories, listWorkers, getWorker, updateOwnProfile, updateAvailability, getWorkerReviews };
