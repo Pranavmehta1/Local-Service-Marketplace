@@ -50,14 +50,25 @@ async function refreshAdminData() {
       let remoteWorkers = null;
 
       try {
-        const [overviewRes, custRes, workRes] = await Promise.all([
+        const [overviewRes, custRes, workRes, pendingRes] = await Promise.all([
           window.LocalFixAPI.get('/admin/overview'),
           window.LocalFixAPI.get('/admin/customers'),
           window.LocalFixAPI.get('/admin/workers'),
+          window.LocalFixAPI.get('/admin/workers/pending'),
         ]);
         if (overviewRes) overviewData = overviewRes;
         if (custRes && Array.isArray(custRes.customers)) remoteCustomers = custRes.customers;
         if (workRes && Array.isArray(workRes.workers)) remoteWorkers = workRes.workers;
+        if (pendingRes && Array.isArray(pendingRes.workers)) {
+          renderVerificationQueue(pendingRes.workers.map(w => ({
+            id: w._id,
+            name: (w.userId && w.userId.name) || w.name || 'Worker',
+            category: w.serviceCategory || w.category || 'Worker',
+            experience: w.experience || 1,
+            location: (w.userId && w.userId.location) || w.serviceArea || 'Local',
+            createdAt: w.createdAt ? new Date(w.createdAt).toLocaleDateString() : 'Recent'
+          })));
+        }
       } catch (authErr) {
         // If not authenticated as admin, fetch public persistent platform stats from MongoDB
         const stats = await window.Storage.getPlatformStatisticsAsync();
@@ -174,17 +185,35 @@ function renderVerificationQueue(pending) {
   `).join('');
 }
 
-window.approveWorkerAccount = (userId, name) => {
-  window.Storage.verifyWorker(name, true);
+window.approveWorkerAccount = async (workerId, name) => {
+  try {
+    if (window.LocalFixAPI) {
+      await window.LocalFixAPI.put(`/admin/workers/${workerId}/verify`, { decision: 'approved' });
+    }
+  } catch (err) {
+    console.warn('Backend worker approve warning:', err);
+  }
+  try {
+    window.Storage.verifyWorker(name, true);
+  } catch (_) {}
   lfShowToast(`Worker ${name} has been approved and is now live!`);
-  refreshAdminData();
+  await refreshAdminData();
 };
 
-window.rejectWorkerAccount = (userId, name) => {
+window.rejectWorkerAccount = async (workerId, name) => {
   if (confirm(`Decline application for ${name}?`)) {
-    window.Storage.verifyWorker(name, false);
+    try {
+      if (window.LocalFixAPI) {
+        await window.LocalFixAPI.put(`/admin/workers/${workerId}/verify`, { decision: 'rejected' });
+      }
+    } catch (err) {
+      console.warn('Backend worker reject warning:', err);
+    }
+    try {
+      window.Storage.verifyWorker(name, false);
+    } catch (_) {}
     lfShowToast(`Worker application for ${name} declined.`, 'info');
-    refreshAdminData();
+    await refreshAdminData();
   }
 };
 

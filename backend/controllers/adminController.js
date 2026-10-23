@@ -64,6 +64,10 @@ const verifyWorker = async (req, res, next) => {
     const worker = await Worker.findByIdAndUpdate(req.params.id, { verificationStatus: decision }, { new: true });
     if (!worker) return res.status(404).json({ message: 'Worker not found' });
 
+    if (decision === 'approved') {
+      await User.findByIdAndUpdate(worker.userId, { isVerified: true });
+    }
+
     await Notification.create({
       userId: worker.userId,
       title: 'Verification update',
