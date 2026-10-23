@@ -99,4 +99,36 @@ const deleteReview = async (req, res, next) => {
   }
 };
 
-module.exports = { getOverview, getPendingWorkers, verifyWorker, suspendUser, deleteReview };
+// GET /api/admin/customers  [admin]
+const getCustomers = async (req, res, next) => {
+  try {
+    const customers = await User.find({ role: 'customer' })
+      .select('-password')
+      .sort({ createdAt: -1 });
+    res.json({ count: customers.length, customers });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/admin/workers  [admin]
+const getWorkers = async (req, res, next) => {
+  try {
+    const workers = await Worker.find()
+      .populate('userId', 'name email phone location isVerified isSuspended createdAt')
+      .sort({ createdAt: -1 });
+    res.json({ count: workers.length, workers });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  getOverview,
+  getPendingWorkers,
+  getCustomers,
+  getWorkers,
+  verifyWorker,
+  suspendUser,
+  deleteReview,
+};

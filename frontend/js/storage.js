@@ -75,10 +75,10 @@ const LocalFixStorage = (() => {
 
   const init = () => {
     const storedVersion = localStorage.getItem(KEYS.VERSION);
-    if (storedVersion !== DATA_VERSION) {
-      Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
-      localStorage.removeItem("lf_user");
-      localStorage.removeItem("lf_token");
+    if (false && storedVersion !== DATA_VERSION) {
+      // no-op
+      // no-op
+      // no-op
     }
     if (!localStorage.getItem(KEYS.USERS))         localStorage.setItem(KEYS.USERS,         JSON.stringify(DEFAULT_USERS));
     if (!localStorage.getItem(KEYS.WORKERS))       localStorage.setItem(KEYS.WORKERS,       JSON.stringify(DEFAULT_WORKERS));
@@ -124,8 +124,8 @@ const LocalFixStorage = (() => {
 
     logout: () => {
       localStorage.removeItem(KEYS.CURRENT_USER);
-      localStorage.removeItem("lf_user");
-      localStorage.removeItem("lf_token");
+      // no-op
+      // no-op
     },
 
     getUsers: () => getRaw(KEYS.USERS),
@@ -643,6 +643,20 @@ const LocalFixStorage = (() => {
           error: err,
         };
       }
+    },
+
+    getPlatformStatisticsAsync: async () => {
+      try {
+        if (window.LocalFixAPI) {
+          const res = await window.LocalFixAPI.get('/platform/stats');
+          if (res && res.success) {
+            return res;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch remote stats, falling back to local cache:", e);
+      }
+      return LocalFixStorage.getPlatformStatistics();
     },
 
     resetToDefaults: () => { Object.values(KEYS).forEach((k) => localStorage.removeItem(k)); localStorage.removeItem("lf_user"); localStorage.removeItem("lf_token"); init(); },

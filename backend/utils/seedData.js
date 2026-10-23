@@ -23,8 +23,16 @@ const workerSeed = [
 ];
 
 const run = async () => {
+  if (!process.argv.includes('--force')) {
+    console.warn('⚠️ SEED BLOCKED: seedData.js will wipe all existing customer and worker records in MongoDB.');
+    console.warn('To prevent accidental data loss, seedData requires the explicit --force flag:');
+    console.warn('  node utils/seedData.js --force');
+    console.warn('Aborting without touching existing data.');
+    process.exit(1);
+  }
+
   await connectDB();
-  console.log('Clearing existing data...');
+  console.log('Clearing existing data (--force supplied)...');
   await Promise.all([
     User.deleteMany({}), Worker.deleteMany({}), Booking.deleteMany({}),
     Complaint.deleteMany({}), Review.deleteMany({}), Notification.deleteMany({}),

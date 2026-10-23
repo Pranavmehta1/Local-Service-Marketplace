@@ -23,16 +23,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function refreshAdminData() {
+async function refreshAdminData() {
   const users = window.Storage.getUsers();
   const workers = window.Storage.getWorkers();
   const bookings = window.Storage.getAllBookings();
   const complaints = window.Storage.getAllComplaints();
   const reviews = window.Storage.getAllReviews();
 
-  const customers = users.filter((u) => u.role === 'customer');
-  const pendingWorkers = users.filter((u) => u.role === 'worker' && u.verificationStatus === 'pending');
+  let customers = users.filter((u) => u.role === 'customer');
+  let pendingWorkers = users.filter((u) => u.role === 'worker' && u.verificationStatus === 'pending');
 
+  // Initial render with currently cached data
   renderAdminStats(customers, workers, bookings, complaints);
   renderVerificationQueue(pendingWorkers);
   renderAllComplaints(complaints);
@@ -40,6 +41,65 @@ function refreshAdminData() {
   renderWorkersTable(workers);
   renderCustomersTable(customers);
   renderReviewsTable(reviews);
+
+  // Asynchronously synchronize directly with MongoDB backend
+  try {
+    if (window.LocalFixAPI) {
+      let overviewData = null;
+      let remoteCustomers = null;
+      let remoteWorkers = null;
+
+      try {
+        const [overviewRes, custRes, workRes] = await Promise.all([
+          window.LocalFixAPI.get('/admin/overview'),
+          window.LocalFixAPI.get('/admin/customers'),
+          window.LocalFixAPI.get('/admin/workers'),
+        ]);
+        if (overviewRes) overviewData = overviewRes;
+        if (custRes && Array.isArray(custRes.customers)) remoteCustomers = custRes.customers;
+        if (workRes && Array.isArray(workRes.workers)) remoteWorkers = workRes.workers;
+      } catch (authErr) {
+        // If not authenticated as admin, fetch public persistent platform stats from MongoDB
+        const stats = await window.Storage.getPlatformStatisticsAsync();
+        if (stats && stats.success) {
+          overviewData = {
+            totalCustomers: stats.registeredCustomers,
+            totalWorkers: stats.registeredWorkers,
+            totalBookings: stats.repairsCompleted || 0,
+            completedBookings: stats.repairsCompleted || 0,
+            pendingBookings: 0,
+            totalComplaints: 0,
+            resolvedComplaints: 0,
+            revenue: 0,
+          };
+        }
+      }
+
+      if (overviewData) {
+        const setVal = (id, val) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = val;
+        };
+        if (typeof overviewData.totalCustomers === 'number') setVal('statAdminCustomers', overviewData.totalCustomers);
+        if (typeof overviewData.totalWorkers === 'number') setVal('statAdminWorkers', overviewData.totalWorkers);
+        if (typeof overviewData.totalBookings === 'number') setVal('statAdminBookings', overviewData.totalBookings);
+        if (typeof overviewData.completedBookings === 'number') setVal('statAdminCompleted', overviewData.completedBookings);
+        if (typeof overviewData.pendingBookings === 'number') setVal('statAdminPending', overviewData.pendingBookings);
+        if (typeof overviewData.totalComplaints === 'number') setVal('statAdminComplaints', overviewData.totalComplaints);
+        if (typeof overviewData.resolvedComplaints === 'number') setVal('statAdminResolved', overviewData.resolvedComplaints);
+        if (typeof overviewData.revenue === 'number') setVal('statAdminRevenue', `₹${overviewData.revenue.toLocaleString()}`);
+      }
+
+      if (remoteCustomers && remoteCustomers.length > 0) {
+        renderCustomersTable(remoteCustomers);
+      }
+      if (remoteWorkers && remoteWorkers.length > 0) {
+        renderWorkersTable(remoteWorkers);
+      }
+    }
+  } catch (syncErr) {
+    console.warn('Admin dashboard backend sync notice:', syncErr);
+  }
 }
 
 function initAdminTabs() {
@@ -185,32 +245,49 @@ function renderWorkersTable(workers) {
   const tbody = document.querySelector('#adminWorkersTable tbody');
   if (!tbody) return;
 
-  tbody.innerHTML = workers.map((w) => `
+  tbody.innerHTML = workers.map((w) => {
+    const name = (w.userId && w.userId.name) ? w.userId.name : (w.name || 'Worker');
+    const category = w.serviceCategory || w.category || 'General';
+    const experience = w.experience || 1;
+    const area = w.serviceArea || w.area || (w.userId && w.userId.location) || 'Ludhiana';
+    const rating = w.rating || 0;
+    const revCount = w.totalReviews || w.reviewsCount || 0;
+    const isVerified = w.verificationStatus === 'approved' || w.verified;
+    const price = (w.pricing && w.pricing.startingPrice) || w.price || 199;
+
+    return `
     <tr>
-      <td><strong>${w.name}</strong></td>
-      <td>${LF_SERVICE_LABELS[w.category] || w.category}</td>
-      <td>${w.experience} yrs</td>
-      <td>${w.area}</td>
-      <td>${w.rating} ★ (${w.reviewsCount || 0})</td>
-      <td>${w.verified ? '<span class="badge bg-success">Verified</span>' : '<span class="badge bg-warning text-dark">Pending</span>'}</td>
-      <td class="lf-mono">₹${w.price}</td>
+      <td><strong>${name}</strong></td>
+      <td>${LF_SERVICE_LABELS[category] || category}</td>
+      <td>${experience} yrs</td>
+      <td>${area}</td>
+      <td>${rating} ★ (${revCount})</td>
+      <td>${isVerified ? '<span class="badge bg-success">Verified</span>' : '<span class="badge bg-warning text-dark">Pending</span>'}</td>
+      <td class="lf-mono">₹${price}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderCustomersTable(customers) {
   const tbody = document.querySelector('#adminCustomersTable tbody');
   if (!tbody) return;
 
-  tbody.innerHTML = customers.map((c) => `
+  tbody.innerHTML = customers.map((c) => {
+    let created = 'Recent';
+    if (c.createdAt) {
+      created = typeof c.createdAt === 'string' && c.createdAt.includes('T') ? c.createdAt.split('T')[0] : c.createdAt;
+    }
+    return `
     <tr>
       <td><strong>${c.name}</strong></td>
       <td>${c.email}</td>
       <td>${c.phone || '+91 98765 00000'}</td>
       <td>${c.location || 'Ludhiana'}</td>
-      <td>${c.createdAt || 'Recent'}</td>
+      <td>${created}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderReviewsTable(reviews) {

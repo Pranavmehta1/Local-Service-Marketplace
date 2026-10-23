@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initStatCounters();
   initNavbarScroll();
   initHeroSearch();
+  window.addEventListener('lf:data-changed', () => initStatCounters());
 });
 
 function renderNavbarAndFooterLogo() {
@@ -188,8 +189,8 @@ function initScrollReveal() {
   setTimeout(() => document.querySelectorAll('.lf-reveal').forEach((el) => observer.observe(el)), 60);
 }
 
-// Stat counters (Dynamic from real data)
-function initStatCounters() {
+// Stat counters (Live from MongoDB via backend API)
+async function initStatCounters() {
   const elWorkers = document.getElementById("statRegisteredWorkers");
   const elCustomers = document.getElementById("statRegisteredCustomers");
   const elRepairs = document.getElementById("statRepairsCompleted");
@@ -199,18 +200,31 @@ function initStatCounters() {
   const statElements = [elWorkers, elCustomers, elRepairs, elAreas, elCSAT].filter(Boolean);
   if (!statElements.length) return;
 
+  // Set initial loading indicator if not already populated
+  statElements.forEach((el) => {
+    if (!el.textContent.trim()) {
+      el.innerHTML = '<span class="spinner-border spinner-border-sm text-primary opacity-50" role="status"></span>';
+    }
+  });
+
   let stats;
   try {
-    if (!window.Storage || typeof window.Storage.getPlatformStatistics !== "function") {
-      throw new Error("Storage unavailable");
+    if (window.Storage && typeof window.Storage.getPlatformStatisticsAsync === "function") {
+      stats = await window.Storage.getPlatformStatisticsAsync();
+    } else if (window.LocalFixAPI) {
+      stats = await window.LocalFixAPI.get('/platform/stats');
+    } else if (window.Storage) {
+      stats = window.Storage.getPlatformStatistics();
     }
-    stats = window.Storage.getPlatformStatistics();
-    if (!stats || stats.success === false) throw new Error("Statistics error");
+    if (!stats || stats.success === false) throw new Error("Statistics response invalid");
   } catch (err) {
+    console.warn("Could not retrieve live platform statistics:", err);
+    // Do not show misleading 0 — indicate connection issue gracefully
     statElements.forEach((el) => {
-      el.className = "lf-stat-big lf-stat-fallback";
-      delete el.dataset.count;
-      el.textContent = "Currently unavailable";
+      if (!el.dataset.count) {
+        el.className = "lf-stat-big lf-stat-fallback";
+        el.textContent = "Connecting...";
+      }
     });
     return;
   }
