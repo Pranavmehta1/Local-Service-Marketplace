@@ -49,7 +49,7 @@
       "lang.selected": "Selected",
 
       // Hero Section
-      "hero.eyebrow": "500+ Verified Workers Across Punjab & North India",
+      "hero.eyebrow": "Verified Local Technicians & On-Demand Home Services",
       "hero.title_p1": "Trusted home repairs,",
       "hero.title_accent": "right at your door.",
       "hero.sub": "Book background-checked electricians, plumbers, AC technicians, and cleaners with transparent upfront pricing and genuine verified reviews.",
@@ -60,7 +60,7 @@
       "hero.all_services": "All Services",
       "hero.search_placeholder": "Area e.g. Model Town",
       "hero.find_workers": "Find Workers",
-      "hero.arrival_badge": "Usually arrives within 30-45 minutes in Ludhiana",
+      "hero.arrival_badge": "Usually arrives within 30-45 minutes at your location",
 
       // Services
       "service.core_title": "Our Core Services",
@@ -405,7 +405,7 @@
       "lang.selected": "चयनित",
 
       // Hero Section
-      "hero.eyebrow": "पंजाब और उत्तर भारत में 500+ सत्यापित कारीगर",
+      "hero.eyebrow": "सत्यापित स्थानीय तकनीशियन और ऑन-डिमांड घरेलू सेवाएं",
       "hero.title_p1": "विश्वसनीय घरेलू मरम्मत,",
       "hero.title_accent": "सीधे आपके द्वार पर।",
       "hero.sub": "पारदर्शी अग्रिम दरों और असली सत्यापित समीक्षाओं के साथ पृष्ठभूमि-सत्यापित इलेक्ट्रीशियन, प्लंबर, एसी और सफाई तकनीशियन बुक करें।",
@@ -416,7 +416,7 @@
       "hero.all_services": "सभी सेवाएं",
       "hero.search_placeholder": "इलाका जैसे मॉडल टाउन",
       "hero.find_workers": "कारीगर खोजें",
-      "hero.arrival_badge": "लुधियाना में आमतौर पर 30-45 मिनट के भीतर आगमन",
+      "hero.arrival_badge": "आमतौर पर आपकी लोकेशन पर 30-45 मिनट के भीतर आगमन",
 
       // Services
       "service.core_title": "हमारी मुख्य सेवाएं",
