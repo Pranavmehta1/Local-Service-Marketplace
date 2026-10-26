@@ -5,19 +5,35 @@
  */
 const FALLBACK_REMOTE_API = 'https://focal-missing-graphics-encouraging.trycloudflare.com/api';
 
+// Configurable Production API Base URL
+// Can be set globally via window.API_BASE_URL or window.LOCALFIX_API_URL
 const getApiBaseUrl = () => {
   try {
-    if (window.LOCALFIX_API_URL) return window.LOCALFIX_API_URL;
-    const stored = localStorage.getItem('lf_api_url');
-    if (stored) return stored;
-    if (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:') {
-      return 'http://127.0.0.1:5000/api';
+    if (typeof window !== 'undefined') {
+      if (window.API_BASE_URL) return window.API_BASE_URL;
+      if (window.LOCALFIX_API_URL) return window.LOCALFIX_API_URL;
+      const stored = localStorage.getItem('lf_api_url');
+      if (stored) return stored;
+
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isLocal) {
+        return window.location.port === '5000' ? '/api' : 'http://127.0.0.1:5000/api';
+      }
+      if (window.location.protocol === 'file:') {
+        return 'http://127.0.0.1:5000/api';
+      }
     }
+    // On production (e.g. Vercel), use relative /api (backed by proxy/rewrite) or explicit API_BASE_URL
     return '/api';
   } catch {
     return '/api';
   }
 };
+
+// Expose on window for easy runtime inspection/configuration
+if (typeof window !== 'undefined') {
+  window.getApiBaseUrl = getApiBaseUrl;
+}
 
 const LocalFixAPI = (() => {
   const getToken = () => {
