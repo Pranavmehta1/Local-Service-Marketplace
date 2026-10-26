@@ -1,9 +1,9 @@
 /**
  * LocalFix API Client
- * Uses relative '/api' so requests always match the current origin
- * Works seamlessly on both http://localhost:5000 and https://*.vercel.app
+ * Seamlessly routes to Render Cloud Backend or local development server
  */
-const FALLBACK_REMOTE_API = 'https://focal-missing-graphics-encouraging.trycloudflare.com/api';
+const PRODUCTION_API_URL = 'https://local-service-marketplace-1lin.onrender.com/api';
+const FALLBACK_REMOTE_API = PRODUCTION_API_URL;
 
 // Configurable Production API Base URL
 // Can be set globally via window.API_BASE_URL or window.LOCALFIX_API_URL
@@ -20,13 +20,13 @@ const getApiBaseUrl = () => {
         return window.location.port === '5000' ? '/api' : 'http://127.0.0.1:5000/api';
       }
       if (window.location.protocol === 'file:') {
-        return 'http://127.0.0.1:5000/api';
+        return PRODUCTION_API_URL;
       }
     }
-    // On production (e.g. Vercel), use relative /api (backed by proxy/rewrite) or explicit API_BASE_URL
-    return '/api';
+    // On production (e.g. Vercel), route directly to live Render backend
+    return PRODUCTION_API_URL;
   } catch {
-    return '/api';
+    return PRODUCTION_API_URL;
   }
 };
 

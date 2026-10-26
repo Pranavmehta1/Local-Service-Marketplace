@@ -2,6 +2,7 @@
   "version": 2,
   "cleanUrls": true,
   "routes": [
+    { "src": "^/api/(.*)$", "dest": "https://local-service-marketplace-1lin.onrender.com/api/$1" },
     { "src": "^/$", "dest": "/frontend/index.html" },
     { "src": "^/pages/(.*)$", "dest": "/frontend/pages/$1" },
     { "src": "^/css/(.*)$", "dest": "/frontend/css/$1" },
