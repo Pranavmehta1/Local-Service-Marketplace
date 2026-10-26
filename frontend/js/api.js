@@ -3,7 +3,7 @@
  * Uses relative '/api' so requests always match the current origin
  * Works seamlessly on both http://localhost:5000 and https://*.vercel.app
  */
-const FALLBACK_REMOTE_API = 'https://immune-sugar-thank-wins.trycloudflare.com/api';
+const FALLBACK_REMOTE_API = 'https://focal-missing-graphics-encouraging.trycloudflare.com/api';
 
 const getApiBaseUrl = () => {
   try {
