@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: localfix-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: REQUIRE_OTP_LOGIN
+        value: "false"
+      - key: JWT_SECRET
+        value: localfix_jwt_super_secret_key_2026_secure
+      - key: OTP_SECRET
+        value: localfix_otp_hmac_secret_key_2026_secure
+      - key: SMTP_USER
+        value: fixxlocal@gmail.com
+      - key: SMTP_APP_PASSWORD
+        value: pockbfzvunxtglbb
+      - key: EMAIL_FROM
+        value: LocalFix <fixxlocal@gmail.com>
+      - key: MONGODB_URI
+        sync: false
